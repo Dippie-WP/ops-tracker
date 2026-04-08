@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OPS TRACKER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark">⬡</div>
+      <div>
+        <div class="logo-title">OPS TRACKER</div>
+        <div class="logo-sub">Mission Control</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="dashboard">
+        <span class="nav-icon">▣</span> Dashboard
+      </button>
+      <button class="nav-item" data-view="ops-list">
+        <span class="nav-icon">≡</span> All Ops
+      </button>
+      <button class="nav-item" data-view="ops-list" data-filter="pending">
+        <span class="nav-icon">○</span> Pending
+      </button>
+      <button class="nav-item" data-view="ops-list" data-filter="in_progress">
+        <span class="nav-icon">◑</span> In Progress
+      </button>
+      <button class="nav-item" data-view="ops-list" data-filter="completed">
+        <span class="nav-icon">●</span> Completed
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-new-op" id="btn-new-op">+ NEW OP</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="main">
+
+    <!-- DASHBOARD VIEW -->
+    <section class="view" id="view-dashboard">
+      <div class="view-header">
+        <h1>Dashboard</h1>
+        <div class="view-date" id="view-date"></div>
+      </div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card" id="stat-total">
+          <div class="stat-label">TOTAL OPS</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" id="stat-inprogress">
+          <div class="stat-label">IN PROGRESS</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card accent-warn" id="stat-overdue">
+          <div class="stat-label">OVERDUE</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card accent-ok" id="stat-completed">
+          <div class="stat-label">COMPLETED</div>
+          <div class="stat-value">—</div>
+        </div>
+      </div>
+
+      <div class="section-title">CRITICAL &amp; HIGH PRIORITY</div>
+      <div class="ops-list" id="dash-priority-list"></div>
+
+      <div class="section-title" style="margin-top:2rem">UPCOMING (next 7 days)</div>
+      <div class="ops-list" id="dash-upcoming-list"></div>
+    </section>
+
+    <!-- OPS LIST VIEW -->
+    <section class="view hidden" id="view-ops-list">
+      <div class="view-header">
+        <h1 id="list-title">All Ops</h1>
+        <div class="list-controls">
+          <input class="search-input" id="search-input" type="text" placeholder="Search ops…" />
+          <select class="filter-select" id="filter-priority">
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="ops-list" id="ops-list-container"></div>
+      <div class="empty-state hidden" id="list-empty">No ops found.</div>
+    </section>
+
+  </main>
+
+  <!-- OP DETAIL DRAWER -->
+  <div class="drawer-overlay hidden" id="drawer-overlay"></div>
+  <aside class="drawer hidden" id="drawer">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-op-id" id="d-op-id"></div>
+        <div class="drawer-title" id="d-title"></div>
+      </div>
+      <button class="drawer-close" id="drawer-close">✕</button>
+    </div>
+    <div class="drawer-body">
+
+      <div class="drawer-meta-row">
+        <span class="meta-badge priority-badge" id="d-priority"></span>
+        <span class="meta-badge status-badge" id="d-status"></span>
+        <span class="meta-date" id="d-date"></span>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <div class="drawer-desc" id="d-desc"></div>
+      </div>
+
+      <div class="drawer-actions">
+        <button class="btn-action" id="d-btn-edit">Edit</button>
+        <button class="btn-action btn-danger" id="d-btn-delete">Delete</button>
+      </div>
+
+      <div class="section-title">ATTACHMENTS</div>
+      <div class="attach-list" id="d-attach-list"></div>
+      <label class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" multiple hidden />
+        <span class="upload-icon">⊕</span>
+        <span>Drop files or click to upload</span>
+        <span class="upload-hint">Max 25 MB per file</span>
+      </label>
+      <div class="upload-progress hidden" id="upload-progress">Uploading…</div>
+
+    </div>
+  </aside>
+
+  <!-- OP FORM MODAL -->
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">New Op</h2>
+        <button class="drawer-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title <span class="required">*</span></label>
+          <input type="text" id="f-title" placeholder="Op title…" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="f-desc" rows="3" placeholder="Details, objectives, notes…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="f-priority">
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="f-status">
+              <option value="pending" selected>Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Planned Date</label>
+            <input type="date" id="f-date" />
+          </div>
+        </div>
+        <div class="form-error hidden" id="form-error"></div>
+        <div class="modal-actions">
+          <button class="btn-action" id="modal-cancel">Cancel</button>
+          <button class="btn-primary" id="modal-save">Save Op</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
