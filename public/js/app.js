@@ -6,12 +6,13 @@
 let state = {
   ops:          [],
   stats:        null,
-  view:         'dashboard',       // 'dashboard' | 'ops-list'
-  listFilter:   '',                // status filter on list view
+  view:         'dashboard',
+  listFilter:   '',
   searchQuery:  '',
   priorityFilter: '',
-  drawer:       null,              // op_id of open drawer, or null
-  modal:        null,              // null | { mode: 'create' | 'edit', opId? }
+  drawer:       null,
+  modal:        null,
+  lightMode:    false,
 };
 
 function setState(patch) {
@@ -22,8 +23,20 @@ function setState(patch) {
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function boot() {
   updateClock();
-  setInterval(updateClock, 60_000);
+  setInterval(updateClock, 30_000);
   bindEvents();
+
+  // Restore light mode preference
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    document.body.classList.add('light');
+    state = { ...state, lightMode: true };
+  }
+
+  // Set version
+  const verEl = document.getElementById('sidebar-version');
+  if (verEl) verEl.textContent = 'v' + APP_VERSION;
+
   await refresh();
 }
 
@@ -41,6 +54,11 @@ function updateClock() {
   if (el) el.textContent = new Date().toLocaleDateString('en-GB', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   }).toUpperCase();
+
+  const timeEl = document.getElementById('sidebar-time');
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('en-GB', {
+    hour: '2-digit', minute: '2-digit'
+  });
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -156,6 +174,10 @@ function opCard(op) {
     ? `📎 ${op.attachment_count}`
     : '';
 
+  const catBadge = op.category
+    ? `<span class="meta-badge category-badge">${op.category.toUpperCase()}</span>`
+    : '';
+
   return `<div class="op-card status-${op.status}"
     data-priority="${op.priority}"
     data-opid="${op.op_id}"
@@ -164,6 +186,7 @@ function opCard(op) {
     <div class="op-card-title">${esc(op.title)}</div>
     <div class="op-card-meta">
       ${attachTxt ? `<span class="op-card-attach">${attachTxt}</span>` : ''}
+      ${catBadge}
       <span class="meta-badge priority-badge" data-p="${op.priority}">${op.priority.toUpperCase()}</span>
       <span class="meta-badge status-badge" data-s="${op.status}">${fmtStatus(op.status)}</span>
     </div>
@@ -199,6 +222,18 @@ function renderDrawer() {
   const sBadge = qs('#d-status');
   sBadge.textContent  = fmtStatus(op.status);
   sBadge.dataset.s    = op.status;
+
+  const catBadge = qs('#d-category');
+  if (catBadge) {
+    catBadge.textContent = op.category ? op.category.toUpperCase() : '—';
+    catBadge.className = 'meta-badge category-badge';
+  }
+
+  const impBadge = qs('#d-impact');
+  if (impBadge) {
+    impBadge.textContent = (op.impact || 'medium').toUpperCase();
+    impBadge.dataset.imp = op.impact;
+  }
 
   const dateEl = qs('#d-date');
   if (op.planned_date) {
@@ -272,6 +307,8 @@ function renderModal() {
       qs('#f-priority').value = op.priority;
       qs('#f-status').value   = op.status;
       qs('#f-date').value     = op.planned_date || '';
+      qs('#f-category').value = op.category || '';
+      qs('#f-impact').value   = op.impact  || 'medium';
     }
   } else {
     qs('#f-title').value    = '';
@@ -279,6 +316,8 @@ function renderModal() {
     qs('#f-priority').value = 'medium';
     qs('#f-status').value   = 'pending';
     qs('#f-date').value     = '';
+    qs('#f-category').value = '';
+    qs('#f-impact').value   = 'medium';
   }
 }
 
@@ -335,6 +374,13 @@ function bindEvents() {
     setState({ priorityFilter: e.target.value });
   });
 
+  // Theme toggle
+  qs('#theme-toggle').addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    setState({ lightMode: isLight });
+  });
+
   // File upload
   qs('#upload-zone').addEventListener('dragover', e => {
     e.preventDefault();
@@ -369,6 +415,8 @@ async function saveModal() {
     priority:     qs('#f-priority').value,
     status:       qs('#f-status').value,
     planned_date: qs('#f-date').value || null,
+    category:     qs('#f-category').value,
+    impact:       qs('#f-impact').value,
   };
 
   try {
@@ -447,4 +495,5 @@ function fileIcon(mime) {
 }
 
 // ── Start ──────────────────────────────────────────────────────────────────
+const APP_VERSION = '1.0.0';
 document.addEventListener('DOMContentLoaded', boot);

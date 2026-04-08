@@ -26,6 +26,10 @@ db.exec(`
     priority  TEXT    NOT NULL DEFAULT 'medium'
                       CHECK(priority IN ('critical','high','medium','low')),
     planned_date TEXT DEFAULT NULL,
+    category    TEXT    NOT NULL DEFAULT ''
+                      CHECK(category IN ('infrastructure','software','security','networking','documentation','other')),
+    impact     TEXT    NOT NULL DEFAULT 'medium'
+                      CHECK(impact IN ('critical','high','medium','low')),
     created_at   TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -72,8 +76,8 @@ const stmts = {
   `),
 
   createOp: db.prepare(`
-    INSERT INTO ops (op_id, title, description, status, priority, planned_date)
-    VALUES (@op_id, @title, @description, @status, @priority, @planned_date)
+    INSERT INTO ops (op_id, title, description, status, priority, planned_date, category, impact)
+    VALUES (@op_id, @title, @description, @status, @priority, @planned_date, @category, @impact)
   `),
 
   updateOp: db.prepare(`
@@ -83,6 +87,8 @@ const stmts = {
       status       = @status,
       priority     = @priority,
       planned_date = @planned_date,
+      category     = @category,
+      impact       = @impact,
       updated_at   = datetime('now')
     WHERE op_id = @op_id
   `),
@@ -123,17 +129,22 @@ const stmts = {
   `),
 };
 
-// ── Helpers to generate sequential OP-XXXX IDs ──────────────────────────────
-
-const lastOpId = db.prepare(`
-  SELECT op_id FROM ops ORDER BY id DESC LIMIT 1
-`);
+// ── Helpers to generate sequential OP-IDs with YYYY-MM-XXXX format ─────────
 
 function nextOpId() {
-  const row = lastOpId.get();
-  if (!row) return 'OP-0001';
-  const num = parseInt(row.op_id.replace('OP-', ''), 10);
-  return 'OP-' + String(num + 1).padStart(4, '0');
+  const year  = new Date().getFullYear();
+  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  const prefix = `${year}-${month}-`;
+
+  const row = db.prepare(`
+    SELECT op_id FROM ops
+    WHERE op_id LIKE ? || '%'
+    ORDER BY id DESC LIMIT 1
+  `).get(prefix);
+
+  if (!row) return prefix + '0001';
+  const num = parseInt(row.op_id.replace(prefix, ''), 10);
+  return prefix + String(num + 1).padStart(4, '0');
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────

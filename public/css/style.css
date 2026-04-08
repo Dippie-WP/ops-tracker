@@ -26,6 +26,25 @@
   --transition: 0.18s ease;
 }
 
+/* ── Light mode ─────────────────────────────────────────────────────── */
+body.light {
+  --bg:        #f0f1f4;
+  --bg2:       #ffffff;
+  --bg3:       #eaeaf0;
+  --bg4:       #dcdce3;
+  --border:    #c8cad6;
+  --border2:   #b0b4c4;
+  --text:      #1a1d24;
+  --text2:     #4a4f65;
+  --text3:     #858aa0;
+  --accent:    #2d5ab5;
+  --accent2:   #1a3a8a;
+  --green:     #1aaa6a;
+  --amber:     #d08820;
+  --red:       #c53030;
+  --purple:    #7a4fdf;
+}
+
 /* ── Base ──────────────────────────────────────────────────────────────── */
 html, body { height: 100%; overflow: hidden; }
 
@@ -58,10 +77,13 @@ body {
 .sidebar-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 20px 16px;
   border-bottom: 1px solid var(--border);
+  gap: 8px;
 }
+
+.header-left { flex: 1; min-width: 0; }
 
 .logo-mark {
   font-size: 26px;
@@ -83,6 +105,40 @@ body {
   color: var(--text3);
   letter-spacing: 0.05em;
   margin-top: 2px;
+}
+
+.sidebar-version {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  padding: 0 0 2px 0;
+}
+
+
+.sidebar-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 5px 7px;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.theme-toggle:hover {
+  background: var(--bg3);
+  color: var(--text);
+  border-color: var(--border2);
 }
 
 .sidebar-nav {
@@ -324,6 +380,12 @@ body {
 .status-badge[data-s="in_progress"] { background: #1c2a42; color: var(--accent); }
 .status-badge[data-s="completed"]   { background: #152b22; color: var(--green); }
 .status-badge[data-s="cancelled"]   { background: var(--bg3); color: var(--text3); }
+
+.category-badge { background: var(--bg4); color: var(--text2); }
+.impact-badge[data-imp="critical"] { background: var(--red); color: #fff; }
+.impact-badge[data-imp="high"]     { background: var(--amber); color: #000; }
+.impact-badge[data-imp="medium"]   { background: var(--accent); color: #fff; }
+.impact-badge[data-imp="low"]      { background: var(--bg4); color: var(--text2); }
 
 /* ── List controls ─────────────────────────────────────────────────────── */
 .list-controls {

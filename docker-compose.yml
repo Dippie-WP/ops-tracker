@@ -4,12 +4,13 @@ services:
     container_name: ops-tracker
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5050:3000"
     volumes:
       # Persistent data — SQLite DB and uploaded files survive container rebuilds
       - ops_data:/data
     environment:
       - PORT=3000
+      - EXTERNAL_PORT=5050
       - NODE_ENV=production
       # Override data path so server writes to the mounted volume
       - DATA_DIR=/data

@@ -14,10 +14,13 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo-mark">⬡</div>
-      <div>
+      <div class="header-left">
         <div class="logo-title">OPS TRACKER</div>
         <div class="logo-sub">Mission Control</div>
+        <div class="sidebar-version" id="sidebar-version"></div>
+        <div class="sidebar-time" id="sidebar-time"></div>
       </div>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light">☀</button>
     </div>
 
     <nav class="sidebar-nav">
@@ -114,6 +117,8 @@
       <div class="drawer-meta-row">
         <span class="meta-badge priority-badge" id="d-priority"></span>
         <span class="meta-badge status-badge" id="d-status"></span>
+        <span class="meta-badge category-badge" id="d-category"></span>
+        <span class="meta-badge impact-badge" id="d-impact"></span>
         <span class="meta-date" id="d-date"></span>
       </div>
 
@@ -178,6 +183,29 @@
           <div class="form-group">
             <label>Planned Date</label>
             <input type="date" id="f-date" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="f-category">
+              <option value="">— select —</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="software">Software</option>
+              <option value="security">Security</option>
+              <option value="networking">Networking</option>
+              <option value="documentation">Documentation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Impact</label>
+            <select id="f-impact">
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
           </div>
         </div>
         <div class="form-error hidden" id="form-error"></div>

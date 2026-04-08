@@ -6,6 +6,8 @@ const db      = require('../db');
 
 const VALID_STATUSES   = ['pending','in_progress','completed','cancelled'];
 const VALID_PRIORITIES = ['critical','high','medium','low'];
+const VALID_CATEGORIES = ['infrastructure','software','security','networking','documentation','other'];
+const VALID_IMPACTS    = ['critical','high','medium','low'];
 
 function validate(body, requireAll = false) {
   const errors = [];
@@ -16,6 +18,10 @@ function validate(body, requireAll = false) {
     errors.push(`status must be one of: ${VALID_STATUSES.join(', ')}`);
   if (body.priority  && !VALID_PRIORITIES.includes(body.priority))
     errors.push(`priority must be one of: ${VALID_PRIORITIES.join(', ')}`);
+  if (body.category && !VALID_CATEGORIES.includes(body.category))
+    errors.push(`category must be one of: ${VALID_CATEGORIES.join(', ')}`);
+  if (body.impact && !VALID_IMPACTS.includes(body.impact))
+    errors.push(`impact must be one of: ${VALID_IMPACTS.join(', ')}`);
   if (body.planned_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.planned_date))
     errors.push('planned_date must be YYYY-MM-DD');
   return errors;
@@ -64,6 +70,8 @@ router.post('/', (req, res) => {
       status:       req.body.status    || 'pending',
       priority:     req.body.priority  || 'medium',
       planned_date: req.body.planned_date || null,
+      category:     req.body.category  || '',
+      impact:       req.body.impact    || 'medium',
     });
     res.status(201).json({ ok: true, data: op });
   } catch (err) {
@@ -82,12 +90,14 @@ router.patch('/:opId', (req, res) => {
 
     const updated = db.updateOp(req.params.opId, {
       title:        (req.body.title        ?? existing.title).trim(),
-      description:  (req.body.description  ?? existing.description || '').trim(),
+      description:  (req.body.description  ?? (existing.description || '')).trim(),
       status:       req.body.status        ?? existing.status,
       priority:     req.body.priority      ?? existing.priority,
       planned_date: req.body.planned_date  !== undefined
                       ? (req.body.planned_date || null)
                       : existing.planned_date,
+      category:     req.body.category      ?? existing.category,
+      impact:       req.body.impact       ?? existing.impact,
     });
     res.json({ ok: true, data: updated });
   } catch (err) {
