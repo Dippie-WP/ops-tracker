@@ -15,6 +15,13 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Migrate existing schema (add category/impact columns if missing)
+try {
+  const cols = db.prepare('PRAGMA table_info(ops)').all().map(r => r.name);
+  if (!cols.includes('category')) db.exec('ALTER TABLE ops ADD COLUMN category TEXT NOT NULL DEFAULT \'\'');
+  if (!cols.includes('impact'))    db.exec('ALTER TABLE ops ADD COLUMN impact TEXT NOT NULL DEFAULT \'medium\'');
+} catch (e) { /* ignore if fresh DB */ }
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS ops (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
