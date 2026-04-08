@@ -776,3 +776,71 @@ select option { background: var(--bg3); }
   .drawer { width: 100%; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* ── Op ID preview (read-only, shown before save) ─────────────────────── */
+.op-id-preview {
+  background: var(--bg4) !important;
+  color: var(--text3) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  cursor: default;
+}
+
+/* ── Modal attachment zone ─────────────────────────────────────────────── */
+.modal-attach-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-attach-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.modal-attach-item .attach-icon { font-size: 14px; }
+
+.modal-attach-item .attach-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.modal-attach-item .attach-size {
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.btn-attach-add {
+  align-self: flex-start;
+  padding: 7px 14px;
+  background: var(--bg3);
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-attach-add:hover {
+  background: var(--bg4);
+  border-color: var(--accent);
+  color: var(--accent);
+}

@@ -13,6 +13,8 @@ let state = {
   drawer:       null,
   modal:        null,
   lightMode:    false,
+  pendingFiles: [],
+  nextOpId:     '',
 };
 
 function setState(patch) {
@@ -318,6 +320,9 @@ function renderModal() {
     qs('#f-date').value     = '';
     qs('#f-category').value = '';
     qs('#f-impact').value   = 'medium';
+    qs('#f-op-id').value     = state.nextOpId || '';
+    qs('#modal-attach-list').innerHTML = '';
+    setState({ pendingFiles: [] });
   }
 }
 
@@ -335,8 +340,10 @@ function bindEvents() {
   });
 
   // New op button
-  qs('#btn-new-op').addEventListener('click', () => {
-    setState({ modal: { mode: 'create' } });
+  qs('#btn-new-op').addEventListener('click', async () => {
+    const nextId = await API.getNextOpId();
+    qs('#f-op-id').value = nextId;
+    setState({ modal: { mode: 'create' }, nextOpId: nextId, pendingFiles: [] });
   });
 
   // Drawer close
@@ -400,6 +407,16 @@ function bindEvents() {
     for (const f of files) await uploadFile(f);
     e.target.value = '';
   });
+
+  // Modal file attachments
+  qs('#btn-attach-add').addEventListener('click', () => {
+    qs('#f-files').click();
+  });
+  qs('#f-files').addEventListener('change', e => {
+    const files = Array.from(e.target.files);
+    addPendingFiles(files);
+    e.target.value = '';
+  });
 }
 
 async function saveModal() {
@@ -421,11 +438,14 @@ async function saveModal() {
 
   try {
     if (state.modal.mode === 'create') {
-      await API.createOp(fields);
+      const op = await API.createOp(fields);
+      for (const f of state.pendingFiles) {
+        await API.uploadAttachment(op.op_id, f);
+      }
     } else {
       await API.updateOp(state.modal.opId, fields);
     }
-    setState({ modal: null });
+    setState({ modal: null, pendingFiles: [], nextOpId: '' });
     await refresh();
   } catch (err) {
     showFormError(err.message);
@@ -470,6 +490,35 @@ window.deleteAttachment = async function(opId, attId) {
   } catch (err) {
     alert('Delete failed: ' + err.message);
   }
+};
+
+// ── Modal file helpers ─────────────────────────────────────────────────────
+function addPendingFiles(files) {
+  const list = [...state.pendingFiles, ...files];
+  setState({ pendingFiles: list });
+  renderModalFiles();
+}
+
+function renderModalFiles() {
+  const el = qs('#modal-attach-list');
+  if (state.pendingFiles.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = state.pendingFiles.map((f, i) => `
+    <div class="modal-attach-item">
+      <span class="attach-icon">${fileIcon(f.type)}</span>
+      <span class="attach-name">${esc(f.name)}</span>
+      <span class="attach-size">${fmtBytes(f.size)}</span>
+      <button type="button" class="attach-btn del" onclick="removePendingFile(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+window.removePendingFile = function(idx) {
+  const list = state.pendingFiles.filter((_, i) => i !== idx);
+  setState({ pendingFiles: list });
+  renderModalFiles();
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────

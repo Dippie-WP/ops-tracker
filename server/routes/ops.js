@@ -46,6 +46,15 @@ router.get('/stats', (req, res) => {
   }
 });
 
+// GET /api/ops/next-id (MUST be before /:opId to avoid being matched as an opId)
+router.get('/next-id', (req, res) => {
+  try {
+    res.json({ ok: true, data: db.nextOpId() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // GET /api/ops/:opId
 router.get('/:opId', (req, res) => {
   try {
