@@ -22,8 +22,8 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-RUN chown -R appuser:appgroup /app /data
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1001
+RUN mkdir -p /data/uploads && chown -R appuser:appgroup /data /app
 USER appuser
 
-CMD ["node", "server/index.js"]
+CMD ["sh", "-c", "rm -f /data/*.wal /data/*.shm; node server/index.js"]
