@@ -1,6 +1,6 @@
 {
   "name": "ops-tracker",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Operations tracker with priorities, planned dates, and attachments",
   "main": "server/index.js",
   "scripts": {
