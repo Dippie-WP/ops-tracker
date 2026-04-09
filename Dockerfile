@@ -1,7 +1,7 @@
-FROM node:20-alpine
+FROM node:20-alpine3.19
 
 # Build deps needed for better-sqlite3 native module
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ su-exec
 
 WORKDIR /app
 
@@ -12,6 +12,8 @@ RUN npm ci --omit=dev
 # Copy app source
 COPY server/ ./server/
 COPY public/ ./public/
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
 # Data volume mount point (db + uploads live here, outside the image)
 RUN mkdir -p /data/uploads
@@ -21,9 +23,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-# Non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1001
-RUN mkdir -p /data/uploads && chown -R appuser:appgroup /data /app
-USER appuser
-
-CMD ["sh", "-c", "rm -f /data/*.wal /data/*.shm; node server/index.js"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
