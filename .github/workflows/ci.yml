@@ -22,5 +22,5 @@ jobs:
         run: |
           docker compose up -d
           sleep 5
-          curl -sf http://localhost:3000/ || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
+          curl -sf http://localhost:5050/ || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
           docker compose down
