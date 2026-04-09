@@ -219,6 +219,24 @@ body {
   box-shadow: 0 2px 8px rgba(37,99,235,0.35);
 }
 
+.btn-new-op.floating {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: auto;
+  padding: 14px 22px;
+  font-size: 13px;
+  border-radius: 50px;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+  z-index: 50;
+  letter-spacing: 0.08em;
+}
+
+.btn-new-op.floating:hover {
+  box-shadow: 0 6px 24px rgba(37,99,235,0.55);
+  transform: translateY(-1px);
+}
+
 /* ── Main ──────────────────────────────────────────────────────────────── */
 .main {
   flex: 1;
@@ -1135,12 +1153,13 @@ select option { background: var(--bg2); }
 /* ── ISO footer ────────────────────────────────────────────────────────── */
 .iso-footer {
   position: fixed;
-  bottom: 0;
-  right: 0;
+  bottom: 12px;
+  left: 12px;
   font-family: var(--font-mono);
   font-size: 9px;
   color: var(--text3);
   letter-spacing: 0.05em;
-  padding: 6px 12px;
+  padding: 4px 8px;
   pointer-events: none;
+  opacity: 0.5;
 }
