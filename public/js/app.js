@@ -32,6 +32,8 @@ let state = {
   nextOpId:      '',
   // Column grid state
   colState:      null,   // { columns: [...], sortCol: 'op_id', sortDir: 'asc' }
+  // Pre-loaded attachment cache keyed by op_id
+  allAttachments: {},
 };
 
 function setState(patch) {
@@ -62,8 +64,12 @@ async function boot() {
 
 async function refresh() {
   try {
-    const [ops, stats] = await Promise.all([API.listOps(), API.getStats()]);
-    setState({ ops, stats });
+    const [ops, stats, allAttachments] = await Promise.all([
+      API.listOps(),
+      API.getStats(),
+      API.getAllAttachments(),
+    ]);
+    setState({ ops, stats, allAttachments });
   } catch (err) {
     console.error('refresh failed:', err);
   }
@@ -425,19 +431,7 @@ function renderDrawer() {
 }
 
 function renderAttachments(op) {
-  if (!op._attachmentsLoaded) {
-    API.getOp(op.op_id).then(full => {
-      const ops = state.ops.map(o => o.op_id === full.op_id
-        ? { ...full, _attachmentsLoaded: true }
-        : o
-      );
-      setState({ ops });
-    });
-    qs('#d-attach-list').innerHTML = '<div class="empty-state">Loading…</div>';
-    return;
-  }
-
-  const atts = op.attachments || [];
+  const atts = state.allAttachments[op.op_id] || [];
   if (atts.length === 0) {
     qs('#d-attach-list').innerHTML = '';
     return;
@@ -700,12 +694,11 @@ async function uploadFile(file) {
   const prog = qs('#upload-progress');
   prog.classList.remove('hidden');
   try {
-    await API.uploadAttachment(state.drawer, file);
-    const full = await API.getOp(state.drawer);
-    const ops = state.ops.map(o =>
-      o.op_id === full.op_id ? { ...full, _attachmentsLoaded: true } : o
-    );
-    setState({ ops });
+    const newAtts = await API.uploadAttachment(state.drawer, file);
+    // Update attachment cache so drawer re-renders instantly
+    state.allAttachments[state.drawer] = newAtts;
+    setState({ allAttachments: { ...state.allAttachments } });
+    renderAttachments({ op_id: state.drawer });
   } catch (err) {
     alert('Upload failed: ' + err.message);
   } finally {
@@ -717,11 +710,14 @@ window.deleteAttachment = async function(opId, attId) {
   if (!confirm('Remove this attachment?')) return;
   try {
     await API.deleteAttachment(opId, attId);
-    const full = await API.getOp(opId);
-    const ops = state.ops.map(o =>
-      o.op_id === full.op_id ? { ...full, _attachmentsLoaded: true } : o
-    );
-    setState({ ops });
+    // Refresh attachment cache for this op
+    const op = state.ops.find(o => o.op_id === opId);
+    if (op) {
+      const full = await API.getOp(opId);
+      state.allAttachments[opId] = full.attachments || [];
+      setState({ allAttachments: { ...state.allAttachments } });
+      renderAttachments({ op_id: opId });
+    }
   } catch (err) {
     alert('Delete failed: ' + err.message);
   }

@@ -122,6 +122,10 @@ const stmts = {
     SELECT * FROM attachments WHERE op_id = ? ORDER BY uploaded_at DESC
   `),
 
+  listAllAttachments: db.prepare(`
+    SELECT * FROM attachments ORDER BY uploaded_at DESC
+  `),
+
   addAttachment: db.prepare(`
     INSERT INTO attachments (op_id, filename, original_name, mime_type, size_bytes)
     VALUES (@op_id, @filename, @original_name, @mime_type, @size_bytes)
@@ -188,6 +192,7 @@ module.exports = {
 
   // Attachments
   listAttachments: (opId) => stmts.listAttachments.all(opId),
+  listAllAttachments: () => stmts.listAllAttachments.all(),
   addAttachment:   (fields) => { stmts.addAttachment.run(fields); },
   deleteAttachment:(id, opId) => stmts.deleteAttachment.run(id, opId).changes > 0,
   getAttachment:   (id) => stmts.getAttachment.get(id),

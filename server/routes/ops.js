@@ -37,6 +37,22 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET /api/ops/attachments — all attachments grouped by op_id (used to pre-load cache)
+router.get('/attachments', (req, res) => {
+  try {
+    const atts = db.listAllAttachments();
+    // Group by op_id
+    const byOp = {};
+    for (const a of atts) {
+      if (!byOp[a.op_id]) byOp[a.op_id] = [];
+      byOp[a.op_id].push(a);
+    }
+    res.json({ ok: true, data: byOp });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // GET /api/ops/stats
 router.get('/stats', (req, res) => {
   try {

@@ -22,6 +22,7 @@ const API = (() => {
     getStats:  ()            => request('GET',    '/api/ops/stats'),
     createOp:  (fields)      => request('POST',   '/api/ops', fields),
     getNextOpId: ()         => request('GET',    '/api/ops/next-id'),
+    getAllAttachments: ()     => request('GET',    '/api/ops/attachments'),
     updateOp:  (id, fields)  => request('PATCH',  `/api/ops/${id}`, fields),
     deleteOp:  (id)          => request('DELETE', `/api/ops/${id}`),
 
