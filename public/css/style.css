@@ -546,6 +546,11 @@ body {
 .impact-badge[data-imp="medium"]   { background: var(--accent); color: #fff; }
 .impact-badge[data-imp="low"]      { background: var(--bg4); color: var(--text2); }
 
+/* ── Division badge ──────────────────────────────────────────────────────── */
+.division-badge[data-div="lab"]       { background: var(--green-bg); color: var(--green); }
+.division-badge[data-div="databyte"]  { background: #fef3c7; color: #92400e; }
+.division-badge[data-div="personal"]  { background: #f3e8ff; color: #6b21a8; }
+
 /* ── Dashboard op cards (legacy list view) ─────────────────────────────── */
 .ops-list {
   display: flex;

@@ -8,6 +8,7 @@ const VALID_STATUSES   = ['pending','in_progress','completed','cancelled'];
 const VALID_PRIORITIES = ['critical','high','medium','low'];
 const VALID_CATEGORIES = ['infrastructure','software','security','networking','documentation','other'];
 const VALID_IMPACTS    = ['critical','high','medium','low'];
+const VALID_DIVISIONS  = ['lab','databyte','personal'];
 
 function validate(body, requireAll = false) {
   const errors = [];
@@ -22,6 +23,8 @@ function validate(body, requireAll = false) {
     errors.push(`category must be one of: ${VALID_CATEGORIES.join(', ')}`);
   if (body.impact && !VALID_IMPACTS.includes(body.impact))
     errors.push(`impact must be one of: ${VALID_IMPACTS.join(', ')}`);
+  if (body.division && !VALID_DIVISIONS.includes(body.division))
+    errors.push(`division must be one of: ${VALID_DIVISIONS.join(', ')}`);
   if (body.planned_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.planned_date))
     errors.push('planned_date must be YYYY-MM-DD');
   return errors;
@@ -97,6 +100,7 @@ router.post('/', (req, res) => {
       planned_date: req.body.planned_date || null,
       category:     req.body.category  || '',
       impact:       req.body.impact    || 'medium',
+      division:     req.body.division  || 'lab',
     });
     res.status(201).json({ ok: true, data: op });
   } catch (err) {
@@ -123,6 +127,7 @@ router.patch('/:opId', (req, res) => {
                       : existing.planned_date,
       category:     req.body.category      ?? existing.category,
       impact:       req.body.impact       ?? existing.impact,
+      division:     req.body.division     ?? existing.division,
     });
     res.json({ ok: true, data: updated });
   } catch (err) {

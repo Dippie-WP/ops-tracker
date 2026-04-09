@@ -14,6 +14,7 @@ const COL_DEFS = [
   { id: 'priority',   label: 'PRIORITY',     width: 100,  visible: true,  sortable: true },
   { id: 'planned_date', label: 'PLANNED',   width: 110,  visible: true,  sortable: true },
   { id: 'attachment_count', label: 'ATT',  width: 60,   visible: true,  sortable: false },
+  { id: 'division',       label: 'DIV',    width: 90,    visible: true,  sortable: true },
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ let state = {
   searchQuery:   '',
   priorityFilter:'',
   statusFilter:  '',
+  divisionFilter:'',
   drawer:        null,
   modal:         null,
   darkMode:      false,
@@ -207,6 +209,9 @@ function renderOpsGrid() {
   const sf = state.statusFilter || qs('#grid-filter-status')?.value || '';
   if (sf) filtered = filtered.filter(o => o.status === sf);
 
+  const df = state.divisionFilter || qs('#grid-filter-division')?.value || '';
+  if (df) filtered = filtered.filter(o => o.division === df);
+
   // Sort
   const { sortCol, sortDir } = colState;
   filtered.sort((a, b) => {
@@ -305,6 +310,10 @@ function renderOpsGrid() {
           content = op.attachment_count > 0 ? `📎 ${op.attachment_count}` : '—';
           extraClass = 'attach-cell';
           style = (col.width ? `width:${col.width}px;min-width:${col.width}px` : '') + ';justify-content:center';
+          break;
+        case 'division':
+          content = `<span class="badge division-badge" data-div="${op.division || 'lab'}">${(op.division || 'lab').toUpperCase()}</span>`;
+          extraClass = 'div-cell';
           break;
       }
       rowHTML += `<div class="ops-grid-cell ${extraClass}" style="${style}">${content}</div>`;
@@ -488,6 +497,7 @@ function renderModal() {
       qs('#f-date').value     = op.planned_date || '';
       qs('#f-category').value = op.category || '';
       qs('#f-impact').value   = op.impact  || 'medium';
+      qs('#f-division').value  = op.division || 'lab';
     }
     qs('#modal-attach-list').innerHTML = '';
     setState({ pendingFiles: [] });
@@ -499,6 +509,7 @@ function renderModal() {
     qs('#f-date').value     = '';
     qs('#f-category').value = '';
     qs('#f-impact').value   = 'medium';
+    qs('#f-division').value  = 'lab';
     qs('#modal-attach-list').innerHTML = '';
     setState({ pendingFiles: [] });
   }
@@ -664,6 +675,7 @@ async function saveModal() {
     planned_date: qs('#f-date').value || null,
     category:     qs('#f-category').value,
     impact:       qs('#f-impact').value,
+    division:     qs('#f-division').value,
   };
 
   try {

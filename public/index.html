@@ -115,6 +115,12 @@
             <option value="blocked">Blocked</option>
             <option value="on_hold">On Hold</option>
           </select>
+          <select class="filter-select" id="grid-filter-division">
+            <option value="">All divisions</option>
+            <option value="lab">Lab</option>
+            <option value="databyte">Databyte</option>
+            <option value="personal">Personal</option>
+          </select>
           <div class="col-toggle-dropdown">
             <button class="col-toggle-btn" id="col-toggle-btn">☰ Columns</button>
             <div class="col-toggle-menu" id="col-toggle-menu"></div>
@@ -234,6 +240,14 @@
               <option value="high">High</option>
               <option value="medium" selected>Medium</option>
               <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Division</label>
+            <select id="f-division">
+              <option value="lab">Lab</option>
+              <option value="databyte">Databyte</option>
+              <option value="personal">Personal</option>
             </select>
           </div>
         </div>

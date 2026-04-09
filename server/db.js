@@ -22,6 +22,12 @@ try {
   if (!cols.includes('impact'))    db.exec('ALTER TABLE ops ADD COLUMN impact TEXT NOT NULL DEFAULT \'medium\'');
 } catch (e) { /* ignore if fresh DB */ }
 
+// Migration: add division column if missing
+try {
+  const cols = db.prepare('PRAGMA table_info(ops)').all().map(r => r.name);
+  if (!cols.includes('division')) db.exec('ALTER TABLE ops ADD COLUMN division TEXT NOT NULL DEFAULT \'lab\'');
+} catch (e) { /* ignore */ }
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS ops (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
