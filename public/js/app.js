@@ -7,7 +7,7 @@ const APP_VERSION = '1.0.0';
 // Column definitions for the ops grid
 const COL_DEFS = [
   { id: 'op_id',      label: 'OP ID',       width: 120,  visible: true,  sortable: true },
-  { id: 'title',      label: 'TITLE',        width: 0,    visible: true,  sortable: true },
+  { id: 'title',      label: 'TITLE',      width: 200,   visible: true,  sortable: true },
   { id: 'category',   label: 'CATEGORY',    width: 120,  visible: true,  sortable: true },
   { id: 'impact',     label: 'IMPACT',       width: 100,  visible: true,  sortable: true },
   { id: 'status',     label: 'STATUS',       width: 110,  visible: true,  sortable: true },
