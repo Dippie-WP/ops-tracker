@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OPS TRACKER</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -52,7 +52,7 @@
     <!-- DASHBOARD VIEW -->
     <section class="view" id="view-dashboard">
       <div class="view-header">
-        <h1>Dashboard</h1>
+        <h1>DASHBOARD</h1>
         <div class="view-date" id="view-date"></div>
       </div>
       <div class="stats-grid" id="stats-grid">
@@ -84,7 +84,7 @@
     <!-- OPS LIST VIEW -->
     <section class="view hidden" id="view-ops-list">
       <div class="view-header">
-        <h1 id="list-title">All Ops</h1>
+        <h1 id="list-title">ALL OPS</h1>
         <div class="list-controls">
           <input class="search-input" id="search-input" type="text" placeholder="Search ops…" />
           <select class="filter-select" id="filter-priority">
@@ -96,7 +96,33 @@
           </select>
         </div>
       </div>
-      <div class="ops-list" id="ops-list-container"></div>
+      <div class="ops-grid-wrap">
+        <div class="ops-grid-toolbar">
+          <input class="search-input" id="grid-search-input" type="text" placeholder="Search…" />
+          <select class="filter-select" id="grid-filter-priority">
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="filter-select" id="grid-filter-status">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="blocked">Blocked</option>
+            <option value="on_hold">On Hold</option>
+          </select>
+          <div class="col-toggle-dropdown">
+            <button class="col-toggle-btn" id="col-toggle-btn">☰ Columns</button>
+            <div class="col-toggle-menu" id="col-toggle-menu"></div>
+          </div>
+        </div>
+        <div class="ops-grid" id="ops-grid"></div>
+        <div class="ops-grid-footer" id="grid-footer"></div>
+      </div>
       <div class="empty-state hidden" id="list-empty">No ops found.</div>
     </section>
 
@@ -115,10 +141,10 @@
     <div class="drawer-body">
 
       <div class="drawer-meta-row">
-        <span class="meta-badge priority-badge" id="d-priority"></span>
-        <span class="meta-badge status-badge" id="d-status"></span>
-        <span class="meta-badge category-badge" id="d-category"></span>
-        <span class="meta-badge impact-badge" id="d-impact"></span>
+        <span class="badge priority-badge" id="d-priority"></span>
+        <span class="badge status-badge" id="d-status"></span>
+        <span class="badge category-badge" id="d-category"></span>
+        <span class="badge impact-badge" id="d-impact"></span>
         <span class="meta-date" id="d-date"></span>
       </div>
 
@@ -149,19 +175,14 @@
   <div class="modal-overlay hidden" id="modal-overlay">
     <div class="modal" id="modal">
       <div class="modal-header">
-        <h2 id="modal-title">New Op</h2>
+        <h2 id="modal-title">NEW OP</h2>
+        <span class="modal-op-id-badge" id="modal-op-id-badge"></span>
         <button class="drawer-close" id="modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>Title <span class="required">*</span></label>
           <input type="text" id="f-title" placeholder="Op title…" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Op ID</label>
-            <input type="text" id="f-op-id" class="op-id-preview" readonly placeholder="auto…" />
-          </div>
         </div>
         <div class="form-group">
           <label>Description</label>
@@ -184,6 +205,8 @@
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="blocked">Blocked</option>
+              <option value="on_hold">On Hold</option>
             </select>
           </div>
           <div class="form-group">
@@ -191,7 +214,7 @@
             <input type="date" id="f-date" />
           </div>
         </div>
-        <div class="form-row">
+        <div class="form-row-2">
           <div class="form-group">
             <label>Category</label>
             <select id="f-category">
@@ -216,10 +239,10 @@
         </div>
         <div class="form-group">
           <label>Attachments</label>
-          <div class="modal-attach-zone" id="modal-attach-zone">
-            <input type="file" id="f-files" multiple hidden />
+          <div class="modal-attach-zone">
+            <input type="file" id="f-files" class="hidden-file-input" multiple hidden />
             <div class="modal-attach-list" id="modal-attach-list"></div>
-            <button type="button" class="btn-attach-add" id="btn-attach-add">⊕ Add Files</button>
+            <label for="f-files" class="btn-attach-add" id="btn-attach-add">+ Add Files</label>
           </div>
         </div>
         <div class="form-error hidden" id="form-error"></div>
@@ -230,6 +253,8 @@
       </div>
     </div>
   </div>
+
+  <div class="iso-footer">DAT-OPS-OP-001 | v1.0 | ISO 9001:2015</div>
 
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
