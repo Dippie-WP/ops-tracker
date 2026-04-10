@@ -38,14 +38,25 @@ jobs:
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
           fi
-          # Count conventional commits since last tag
-          IS_MAJOR=$(git log --format=%s ${LAST}..HEAD 2>/dev/null | grep -cE '^feat!|^fix!')
-          SHOULD_BUMP=$(git log --format=%s ${LAST}..HEAD 2>/dev/null | grep -cE '^feat|^fix')
-          if [[ $IS_MAJOR -gt 0 ]]; then
+
+          # Parse conventional commits since last tag
+          COMMITS=$(git log --format=%s ${LAST}..HEAD 2>/dev/null)
+          
+          # Breaking changes → MAJOR (feat! or fix! with !)
+          HAS_MAJOR=$(echo "$COMMITS" | grep -cE '^feat!|^fix!')
+          # New features (no !) → MINOR
+          HAS_FEAT=$(echo "$COMMITS" | grep -cE '^feat:')
+          # Bug fixes (no !) → PATCH
+          HAS_FIX=$(echo "$COMMITS" | grep -cE '^fix:')
+
+          if [[ $HAS_MAJOR -gt 0 ]]; then
             NEW_VERSION="v$((MAJOR+1)).0.0"
-          elif [[ $SHOULD_BUMP -gt 0 ]]; then
+          elif [[ $HAS_FEAT -gt 0 ]]; then
             NEW_VERSION="v${MAJOR}.$((MINOR+1)).0"
+          elif [[ $HAS_FIX -gt 0 ]]; then
+            NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH+1))"
           else
+            # No feat/fix → patch anyway to keep release going
             NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH+1))"
           fi
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
@@ -72,7 +83,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/ops-tracker
-          tags: type=semver,pattern={{version}}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
 
       - name: Build and push
         uses: docker/build-push-action@v6
