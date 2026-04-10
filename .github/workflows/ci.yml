@@ -67,7 +67,7 @@ jobs:
           tags: |
             type=sha,prefix=,type=ref,event=branch
             type=semver,pattern={{version}}
-            type=tag,event=tag
+            type=ref,event=tag
             type=raw,value=latest,enable=true
 
       - name: Build and push
