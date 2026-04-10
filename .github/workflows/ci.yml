@@ -30,6 +30,9 @@ jobs:
       - name: Build Docker image
         run: docker compose build --no-cache
 
+      - name: Inspect image
+        run: docker run --rm $(docker compose config --images | tail -1) ls /app/ && docker run --rm $(docker compose config --images | tail -1) ls /app/server/
+
       - name: Run container smoke test
         run: |
           docker compose up -d
