@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
 
 jobs:
   release:
@@ -21,53 +22,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Get latest tag
+      - name: Get current tag
         id: version
         run: |
-          git fetch --tags
-          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "v0.0.0")
-          echo "last=$LAST_TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Determine next version
-        shell: bash
-        run: |
-          LAST=${{ steps.version.outputs.last }}
-          MAJOR=0 MINOR=0 PATCH=0
-          if [[ $LAST =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            MAJOR=${BASH_REMATCH[1]}
-            MINOR=${BASH_REMATCH[2]}
-            PATCH=${BASH_REMATCH[3]}
-          fi
-
-          # Parse conventional commits since last tag
-          COMMITS=$(git log --format=%s ${LAST}..HEAD 2>/dev/null)
-          
-          # Breaking changes → MAJOR (feat! or fix! with !)
-          HAS_MAJOR=$(echo "$COMMITS" | grep -cE '^feat!|^fix!')
-          # New features (no !) → MINOR
-          HAS_FEAT=$(echo "$COMMITS" | grep -cE '^feat:')
-          # Bug fixes (no !) → PATCH
-          HAS_FIX=$(echo "$COMMITS" | grep -cE '^fix:')
-
-          if [[ $HAS_MAJOR -gt 0 ]]; then
-            NEW_VERSION="v$((MAJOR+1)).0.0"
-          elif [[ $HAS_FEAT -gt 0 ]]; then
-            NEW_VERSION="v${MAJOR}.$((MINOR+1)).0"
-          elif [[ $HAS_FIX -gt 0 ]]; then
-            NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH+1))"
-          else
-            # No feat/fix → patch anyway to keep release going
-            NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH+1))"
-          fi
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "New version: $NEW_VERSION"
-
-      - name: Create tag
-        run: |
-          git config user.email "misha@openclaw"
-          git config user.name "Misha"
-          git tag -a ${{ steps.version.outputs.version }} -m "Release ${{ steps.version.outputs.version }}"
-          git push origin ${{ steps.version.outputs.version }}
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          echo "current=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -79,24 +38,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/ops-tracker
-          tags: |
-            type=semver,pattern={{version}}
-            type=sha
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/dippie-wp/ops-tracker:${{ github.sha }}
+            ghcr.io/dippie-wp/ops-tracker:${{ steps.version.outputs.current }}
+          labels: |
+            org.opencontainers.image.title=ops-tracker
+            org.opencontainers.image.description=Operations tracker API
+            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/ops-tracker
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.current }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          tag_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.current }}
