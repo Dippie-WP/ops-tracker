@@ -30,14 +30,14 @@ jobs:
       - name: Build Docker image
         run: docker compose build --no-cache
 
-      - name: Inspect image
-        run: docker run --rm $(docker compose config --images | tail -1) ls /app/ && docker run --rm $(docker compose config --images | tail -1) ls /app/server/
-
       - name: Run container smoke test
         run: |
           docker compose up -d
-          sleep 5
-          curl -sf http://localhost:5050/ || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
+          sleep 8
+          # Verify server files are present
+          docker exec $(docker compose ps -q ops-tracker) ls /app/server/
+          # Verify API responds
+          curl -sf http://localhost:5050/api/ops || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
           docker compose down
 
   ghcr-push:
