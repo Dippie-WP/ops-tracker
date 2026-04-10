@@ -34,9 +34,7 @@ jobs:
         run: |
           docker compose up -d
           sleep 8
-          # Verify server files are present
           docker exec $(docker compose ps -q ops-tracker) ls /app/server/
-          # Verify API responds
           curl -sf http://localhost:5050/api/ops || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
           docker compose down
 
@@ -60,20 +58,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/ops-tracker
-          tags: |
-            type=sha,prefix=,type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=ref,event=tag
-            type=raw,value=latest,enable=true
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ops-tracker:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/ops-tracker:latest
+          labels: |
+            org.opencontainers.image.title=ops-tracker
+            org.opencontainers.image.description=Operations tracker API
+            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/ops-tracker
+            org.opencontainers.image.revision=${{ github.sha }}
