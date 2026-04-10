@@ -1,8 +1,8 @@
 'use strict';
 
 const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const path    = require('path');
+const fs      = require('fs');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const DB_PATH  = path.join(DATA_DIR, 'ops.db');
@@ -14,6 +14,8 @@ const db = new Database(DB_PATH);
 // Enable WAL mode for better concurrency and crash safety
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+
+// ── Schema migrations ─────────────────────────────────────────────────────────
 
 // Migrate existing schema (add category/impact columns if missing)
 try {
@@ -27,6 +29,8 @@ try {
   const cols = db.prepare('PRAGMA table_info(ops)').all().map(r => r.name);
   if (!cols.includes('division')) db.exec('ALTER TABLE ops ADD COLUMN division TEXT NOT NULL DEFAULT \'lab\'');
 } catch (e) { /* ignore */ }
+
+// ── Core tables ───────────────────────────────────────────────────────────────
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS ops (
@@ -43,6 +47,7 @@ db.exec(`
                       CHECK(category IN ('infrastructure','software','security','networking','documentation','other')),
     impact     TEXT    NOT NULL DEFAULT 'medium'
                       CHECK(impact IN ('critical','high','medium','low')),
+    division   TEXT    NOT NULL DEFAULT 'lab',
     created_at   TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -57,13 +62,61 @@ db.exec(`
     uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  CREATE INDEX IF NOT EXISTS idx_ops_status   ON ops(status);
-  CREATE INDEX IF NOT EXISTS idx_ops_priority ON ops(priority);
-  CREATE INDEX IF NOT EXISTS idx_ops_planned  ON ops(planned_date);
-  CREATE INDEX IF NOT EXISTS idx_attach_op    ON attachments(op_id);
+  CREATE INDEX IF NOT EXISTS idx_ops_status    ON ops(status);
+  CREATE INDEX IF NOT EXISTS idx_ops_priority  ON ops(priority);
+  CREATE INDEX IF NOT EXISTS idx_ops_planned   ON ops(planned_date);
+  CREATE INDEX IF NOT EXISTS idx_ops_division  ON ops(division);
+  CREATE INDEX IF NOT EXISTS idx_attach_op     ON attachments(op_id);
 `);
 
-// ── Prepared statements (compiled once, reused safely) ──────────────────────
+// ── Users table (minimal — for activity log attribution) ──────────────────────
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id        TEXT    PRIMARY KEY,
+    name      TEXT    NOT NULL,
+    initials  TEXT    NOT NULL DEFAULT '',
+    email     TEXT,
+    division   TEXT
+  )
+`);
+
+// Ensure a default user exists (Zun — system operator)
+try {
+  const existing = db.prepare('SELECT id FROM users WHERE id = ?').get('default');
+  if (!existing) {
+    db.prepare(`INSERT INTO users (id, name, initials, division) VALUES (?, ?, ?, ?)`
+    ).run('default', 'Zun', 'ZU', 'lab');
+  }
+} catch (e) { /* ignore */ }
+
+// ── Activity log table ────────────────────────────────────────────────────────
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS activity_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id     TEXT    NOT NULL,
+    op_number   TEXT,
+    user_id     TEXT    NOT NULL DEFAULT 'default'
+                      REFERENCES users(id),
+    type        TEXT    NOT NULL
+                      CHECK(type IN (
+                        'STATUS_CHANGE','PRIORITY_CHANGE','ASSIGNED',
+                        'CREATED','COMMENTED','FIELDS_CHANGED'
+                      )),
+    display     TEXT    NOT NULL,
+    comment     TEXT,
+    division    TEXT,
+    timestamp   TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_activity_task_id    ON activity_log(task_id);
+  CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity_log(timestamp DESC);
+  CREATE INDEX IF NOT EXISTS idx_activity_division  ON activity_log(division);
+  CREATE INDEX IF NOT EXISTS idx_activity_user_id    ON activity_log(user_id);
+`);
+
+// ── Prepared statements ───────────────────────────────────────────────────────
 
 const stmts = {
   listOps: db.prepare(`
@@ -89,8 +142,8 @@ const stmts = {
   `),
 
   createOp: db.prepare(`
-    INSERT INTO ops (op_id, title, description, status, priority, planned_date, category, impact)
-    VALUES (@op_id, @title, @description, @status, @priority, @planned_date, @category, @impact)
+    INSERT INTO ops (op_id, title, description, status, priority, planned_date, category, impact, division)
+    VALUES (@op_id, @title, @description, @status, @priority, @planned_date, @category, @impact, @division)
   `),
 
   updateOp: db.prepare(`
@@ -102,6 +155,7 @@ const stmts = {
       planned_date = @planned_date,
       category     = @category,
       impact       = @impact,
+      division     = @division,
       updated_at   = datetime('now')
     WHERE op_id = @op_id
   `),
@@ -144,13 +198,39 @@ const stmts = {
   getAttachment: db.prepare(`
     SELECT * FROM attachments WHERE id = ?
   `),
+
+  // ── Activity ────────────────────────────────────────────────────────────────
+
+  createActivity: db.prepare(`
+    INSERT INTO activity_log (task_id, op_number, user_id, type, display, comment, division)
+    VALUES (@task_id, @op_number, @user_id, @type, @display, @comment, @division)
+  `),
+
+  listActivity: db.prepare(`
+    SELECT a.*, u.name AS user_name, u.initials AS user_initials
+    FROM   activity_log a
+    LEFT JOIN users u ON u.id = a.user_id
+    WHERE  1=1
+    ORDER BY a.timestamp DESC
+    LIMIT  ? OFFSET ?
+  `),
+
+  countActivity: db.prepare(`
+    SELECT COUNT(*) AS total FROM activity_log WHERE 1=1
+  `),
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+
+  listUsers: db.prepare(`SELECT * FROM users ORDER BY name`),
+
+  getUser: db.prepare(`SELECT * FROM users WHERE id = ?`),
 };
 
-// ── Helpers to generate sequential OP-IDs with YYYY-MM-XXXX format ─────────
+// ── OP number generator ────────────────────────────────────────────────────────
 
 function nextOpId() {
-  const year  = new Date().getFullYear();
-  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  const year   = new Date().getFullYear();
+  const month  = String(new Date().getMonth() + 1).padStart(2, '0');
   const prefix = `${year}-${month}-`;
 
   const row = db.prepare(`
@@ -164,6 +244,29 @@ function nextOpId() {
   return prefix + String(num + 1).padStart(4, '0');
 }
 
+// ── Activity helpers ──────────────────────────────────────────────────────────
+
+const ACTIVITY_TYPES = {
+  STATUS_CHANGE:  'STATUS_CHANGE',
+  PRIORITY_CHANGE: 'PRIORITY_CHANGE',
+  ASSIGNED:        'ASSIGNED',
+  CREATED:         'CREATED',
+  COMMENTED:       'COMMENTED',
+  FIELDS_CHANGED:  'FIELDS_CHANGED',
+};
+
+function logActivity({ taskId, opNumber, userId, type, display, comment, division }) {
+  stmts.createActivity.run({
+    task_id:   taskId   || opNumber,
+    op_number: opNumber || null,
+    user_id:   userId   || 'default',
+    type,
+    display:   display  || '',
+    comment:   comment  || null,
+    division:  division || null,
+  });
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -175,13 +278,49 @@ module.exports = {
   createOp(fields) {
     const op_id = nextOpId();
     stmts.createOp.run({ ...fields, op_id });
-    return stmts.getOp.get(op_id);
+    const op = stmts.getOp.get(op_id);
+
+    // Write CREATED activity entry
+    logActivity({
+      taskId:   String(op.id),
+      opNumber: op_id,
+      userId:   'default',
+      type:     ACTIVITY_TYPES.CREATED,
+      display:  'Zun created this task',
+      division: op.division,
+    });
+
+    return op;
   },
 
-  updateOp(opId, fields) {
+  updateOp(opId, fields, prevOp) {
     const info = stmts.updateOp.run({ ...fields, op_id: opId });
     if (info.changes === 0) return null;
-    return stmts.getOp.get(opId);
+    const op = stmts.getOp.get(opId);
+
+    // Detect what changed and write activity entries
+    if (prevOp && fields.status && fields.status !== prevOp.status) {
+      logActivity({
+        taskId:   String(op.id),
+        opNumber: opId,
+        userId:   'default',
+        type:     ACTIVITY_TYPES.STATUS_CHANGE,
+        display:  `Zun changed status to ${formatStatus(fields.status)}`,
+        division: op.division,
+      });
+    }
+    if (prevOp && fields.priority && fields.priority !== prevOp.priority) {
+      logActivity({
+        taskId:   String(op.id),
+        opNumber: opId,
+        userId:   'default',
+        type:     ACTIVITY_TYPES.PRIORITY_CHANGE,
+        display:  `Zun changed priority to ${capitalize(fields.priority)}`,
+        division: op.division,
+      });
+    }
+
+    return op;
   },
 
   deleteOp(opId) {
@@ -197,9 +336,52 @@ module.exports = {
   },
 
   // Attachments
-  listAttachments: (opId) => stmts.listAttachments.all(opId),
-  listAllAttachments: () => stmts.listAllAttachments.all(),
-  addAttachment:   (fields) => { stmts.addAttachment.run(fields); },
-  deleteAttachment:(id, opId) => stmts.deleteAttachment.run(id, opId).changes > 0,
-  getAttachment:   (id) => stmts.getAttachment.get(id),
+  listAttachments:    (opId) => stmts.listAttachments.all(opId),
+  listAllAttachments: ()    => stmts.listAllAttachments.all(),
+  addAttachment:      (fields) => { stmts.addAttachment.run(fields); },
+  deleteAttachment:   (id, opId) => stmts.deleteAttachment.run(id, opId).changes > 0,
+  getAttachment:      (id) => stmts.getAttachment.get(id),
+
+  // Activity
+  createActivity: (fields) => logActivity(fields),
+
+  listActivity({ type, taskId, division, limit = 20, page = 1 } = {}) {
+    const offset = (page - 1) * limit;
+    let where = '1=1';
+    const params = [];
+
+    if (type)     { where += ' AND a.type = ?';       params.push(type); }
+    if (taskId)   { where += ' AND a.task_id = ?';    params.push(taskId); }
+    if (division) { where += ' AND a.division = ?';   params.push(division); }
+
+    const countSql = `SELECT COUNT(*) AS total FROM activity_log a WHERE ${where}`;
+    const listSql  = `
+      SELECT a.*, u.name AS user_name, u.initials AS user_initials
+      FROM   activity_log a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE  ${where}
+      ORDER BY a.timestamp DESC
+      LIMIT  ? OFFSET ?
+    `;
+
+    const total = db.prepare(countSql).get(...params)?.total || 0;
+    const rows  = db.prepare(listSql).all(...params, limit, offset);
+    return { activity: rows, total, page, limit };
+  },
+
+  // Users
+  listUsers: () => stmts.listUsers.all(),
+  getUser:  (id) => stmts.getUser.get(id),
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatStatus(s) {
+  if (!s) return '';
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function capitalize(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

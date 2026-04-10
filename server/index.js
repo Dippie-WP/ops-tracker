@@ -11,9 +11,14 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Routes
 const opsRouter         = require('./routes/ops');
 const attachmentsRouter = require('./routes/attachments');
+const activityRouter   = require('./routes/activity');
+const usersRouter      = require('./routes/users');
 
-app.use('/api/ops', opsRouter);
+app.use('/api/ops',        opsRouter);
 app.use('/api/ops/:opId/attachments', attachmentsRouter);
+app.use('/api/activity',   activityRouter);
+app.use('/api/users',      usersRouter);
+app.use('/api/auth',       usersRouter);  // /api/auth/me handled in usersRouter
 
 // Fallback → SPA
 app.get('*', (_req, res) => {

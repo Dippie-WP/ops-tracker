@@ -4,11 +4,11 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
 
-const VALID_STATUSES   = ['pending','in_progress','completed','cancelled'];
+const VALID_STATUSES    = ['pending','in_progress','completed','cancelled'];
 const VALID_PRIORITIES = ['critical','high','medium','low'];
 const VALID_CATEGORIES = ['infrastructure','software','security','networking','documentation','other'];
 const VALID_IMPACTS    = ['critical','high','medium','low'];
-const VALID_DIVISIONS  = ['lab','databyte','personal'];
+const VALID_DIVISIONS  = ['lab','databyte','home'];
 
 function validate(body, requireAll = false) {
   const errors = [];
@@ -40,11 +40,10 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/ops/attachments — all attachments grouped by op_id (used to pre-load cache)
+// GET /api/ops/attachments
 router.get('/attachments', (req, res) => {
   try {
     const atts = db.listAllAttachments();
-    // Group by op_id
     const byOp = {};
     for (const a of atts) {
       if (!byOp[a.op_id]) byOp[a.op_id] = [];
@@ -65,7 +64,7 @@ router.get('/stats', (req, res) => {
   }
 });
 
-// GET /api/ops/next-id (MUST be before /:opId to avoid being matched as an opId)
+// GET /api/ops/next-id
 router.get('/next-id', (req, res) => {
   try {
     res.json({ ok: true, data: db.nextOpId() });
@@ -117,6 +116,7 @@ router.patch('/:opId', (req, res) => {
     const errors = validate(req.body, false);
     if (errors.length) return res.status(400).json({ ok: false, errors });
 
+    // Pass previous op to updateOp so it can detect changes for activity log
     const updated = db.updateOp(req.params.opId, {
       title:        (req.body.title        ?? existing.title).trim(),
       description:  (req.body.description  ?? (existing.description || '')).trim(),
@@ -128,7 +128,8 @@ router.patch('/:opId', (req, res) => {
       category:     req.body.category      ?? existing.category,
       impact:       req.body.impact       ?? existing.impact,
       division:     req.body.division     ?? existing.division,
-    });
+    }, existing);  // <-- pass previous state for activity detection
+
     res.json({ ok: true, data: updated });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

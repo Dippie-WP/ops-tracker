@@ -6,13 +6,14 @@ services:
     ports:
       - "5050:3000"
     volumes:
-      # Persistent data — SQLite DB and uploaded files survive container rebuilds
       - ops_data:/data
+      # Override server files (hot-reload dev) — must not hide node_modules
+      - /home/zunaid/ops-tracker/server:/app/server:ro
+      - /home/zunaid/ops-tracker/public:/app/public:ro
     environment:
       - PORT=3000
       - EXTERNAL_PORT=5050
       - NODE_ENV=production
-      # Override data path so server writes to the mounted volume
       - DATA_DIR=/data
 
 volumes:
