@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies first (layer cache — only rebuilds if package.json changes)
 COPY package*.json ./
-RUN npm ci
+RUN npm install --include=dev
 
 # Copy app source
 COPY server/ ./server/
