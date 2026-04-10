@@ -12,6 +12,7 @@ RUN npm install --include=dev
 # Copy app source
 COPY server/ ./server/
 COPY public/ ./public/
+RUN mkdir -p /app/data
 COPY docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 
