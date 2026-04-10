@@ -14,3 +14,5 @@ coverage/
 data/
 uploads/
 *.sqlite
+docker-compose.override.yml
+docker-compose.override.yml
