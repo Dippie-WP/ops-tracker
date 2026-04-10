@@ -6,4 +6,4 @@ fi
 # Clean stale WAL/shm from previous container runs
 rm -f /data/*.wal /data/*.shm
 # Become non-root user and exec the app
-exec su-exec 1001:101 node server/index.js
+cd /app/server && exec su-exec 1001:101 node index.js
