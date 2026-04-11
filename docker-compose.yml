@@ -1,6 +1,8 @@
 services:
   ops-tracker:
-    build: .
+    # Image from GHCR — set IMAGE_TAG env var to override
+    # Run with: IMAGE_TAG=9b2af6e7bccc... docker compose up -d
+    image: ghcr.io/dippie-wp/ops-tracker:${IMAGE_TAG:-latest}
     container_name: ops-tracker
     restart: unless-stopped
     ports:
