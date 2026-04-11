@@ -1,7 +1,45 @@
+# Dependencies
 node_modules
+
+# Data and logs
 data
+*.log
+logs
+
+# Git
 .git
 .gitignore
-*.tar.gz
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Documentation
 *.md
+CHANGELOG.md
+README.md
+VERSIONING.md
+
+# Environment
 .env*
+*.env
+
+# Build artifacts
+dist
+build
+*.tar.gz
+*.zip
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test coverage
+coverage
+.nyc_output
+
+# CI/CD
+.github
