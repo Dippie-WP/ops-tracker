@@ -55,7 +55,6 @@ jobs:
         run: |
           docker compose up -d
           sleep 5
-          curl -sf http://localhost:5050/api/health
-          curl -sf http://localhost:5050/api/ops?status=pending
-            || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
+          curl -sf http://localhost:5050/api/health || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
+          curl -sf http://localhost:5050/api/ops?status=standby || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
           docker compose down
