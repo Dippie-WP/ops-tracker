@@ -29,21 +29,41 @@ jobs:
         with:
           install: true
 
-      - name: Build Docker image (multi-arch via buildx)
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --tag ghcr.io/dippie-wp/ops-tracker:build-test \
-            --load \
-            .
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/dippie-wp/ops-tracker:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=ops-tracker
+            org.opencontainers.image.description=Operations tracker API
+            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/ops-tracker
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Run container smoke test
         run: |
-          docker compose up -d
-          sleep 8
-          docker exec $(docker compose ps -q ops-tracker) ls /app/server/
-          curl -sf http://localhost:5050/api/ops || { docker logs "$(docker compose ps -q ops-tracker)"; exit 1; }
-          docker compose down
+          docker pull ghcr.io/dippie-wp/ops-tracker:${{ github.sha }}
+          docker run --rm -d \
+            --name ops-smoke \
+            -p 5050:3000 \
+            -e PORT=3000 \
+            -e DATA_DIR=/data \
+            ghcr.io/dippie-wp/ops-tracker:${{ github.sha }}
+          sleep 10
+          # Verify server files present inside container
+          docker exec ops-smoke ls /app/server/
+          # Verify API responds
+          curl -sf http://localhost:5050/api/ops
+          docker stop ops-smoke
 
   ghcr-push:
     needs: [docker-build]
@@ -67,7 +87,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push multi-arch image
+      - name: Build and push multi-arch + latest tag
         uses: docker/build-push-action@v6
         with:
           context: .
