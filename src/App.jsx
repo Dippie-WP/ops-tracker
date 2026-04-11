@@ -18,7 +18,7 @@
  *   Routes replace only the task table / content inside content-area
  */
 
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import useStore, { urlToFilters } from './store';
 import Header           from './components/Shell/Header';

@@ -17,9 +17,9 @@ const ITEMS = [
     { label: 'Overdue',      icon: '🔴', path: '/tasks/overdue',               filter: { status: 'overdue' } },
   ]},
   { section: 'Divisions', items: [
-    { label: 'Lab',          icon: '🔬', path: '/tasks/division/lab',         filter: { division: 'lab' } },
-    { label: 'Home',         icon: '🏠', path: '/tasks/division/home',        filter: { division: 'home' } },
-    { label: 'Databyte',     icon: '💾', path: '/tasks/division/databyte',    filter: { division: 'databyte' } },
+    { label: 'Lab',      icon: '🔬', path: '/',  filter: { division: 'lab' } },
+    { label: 'Home',     icon: '🏠', path: '/',  filter: { division: 'home' } },
+    { label: 'Databyte', icon: '💾', path: '/',  filter: { division: 'databyte' } },
   ]},
   { section: 'System', items: [
     { label: 'Dashboard',    icon: '📊', path: '/',                           filter: {} },
@@ -43,8 +43,13 @@ export default function Sidebar() {
 
   function handleClick(item) {
     if (item.path === '/') {
-      clearFilters();
-      navigate('/');
+      if (Object.keys(item.filter).length > 0) {
+        // Division filter: set store filter, stay on home, no URL change
+        setFilter(item.filter, { push: false });
+        fetchTasks(item.filter);
+      } else {
+        clearFilters();
+      }
       return;
     }
     navigate(item.path);
