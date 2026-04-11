@@ -16,18 +16,18 @@ export default function TasksList({ onNewOp }) {
   const [editTask, setEditTask]   = useState(null);
 
   const setFilter = useStore(s => s.setFilter);
-  const fetchAll  = useStore(s => s.fetchAll);
+  const fetchTasks = useStore(s => s.fetchTasks);
   const selectTask = useStore(s => s.selectTask);
 
   useEffect(() => {
     let f = {};
     if (filterType === 'in-progress') f.status = 'in_progress';
-    else if (filterType === 'pending')   f.status = 'pending';
+    else if (filterType === 'standby')   f.status = 'standby';
     else if (filterType === 'completed') f.status = 'completed';
+    else if (filterType === 'overdue')   f.status = 'overdue';
     else if (filterType === 'division')  f.division = filterValue;
-    else if (filterType === 'my-tasks') f.assigned_to = 'zu';
     setFilter(f, { push: false });
-    fetchAll();
+    fetchTasks(f);
   }, [filterType, filterValue]);
 
   const handleNewOp = () => { setEditTask(null); setShowModal(true); };

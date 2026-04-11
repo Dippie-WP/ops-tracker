@@ -51,12 +51,13 @@ export function filtersToURL(filters) {
 export function urlToFilters() {
   const params = new URLSearchParams(window.location.search);
   return {
-    status:        params.get('status')    || null,
-    division:      params.get('division')  || null,
-    priority:      params.get('priority')  || null,
-    search:        params.get('search')    || '',
-    activityType:  params.get('atype')     || null,
-    planned_date:  params.get('planned')   || null,
+    status:        params.get('status')      || null,
+    division:      params.get('division')    || null,
+    priority:      params.get('priority')    || null,
+    search:        params.get('search')      || '',
+    activityType:  params.get('atype')       || null,
+    planned_date:  params.get('planned')     || null,
+    assigned_to:   params.get('assigned_to') || null,
   };
 }
 
@@ -113,6 +114,12 @@ export const useStore = create((set, get) => ({
     const { filters } = get();
     get().fetchTasks(filters);
     get().fetchActivity(filters);
+  },
+
+  clearFilters: () => {
+    set({ filters: {}, page: 1 });
+    pushURL({});
+    get().fetchAll();
   },
 
   setActivityTypeFilter: (type) => {
@@ -176,7 +183,7 @@ export const useStore = create((set, get) => ({
     const { filters } = get();
     try {
       const [tasks, stats, activityData] = await Promise.all([
-        api.listOps(),
+        api.listOps({ params: filters }),
         api.getStats(),
         api.getActivity({ limit: get().activityLimit }),
       ]);
@@ -188,7 +195,14 @@ export const useStore = create((set, get) => ({
 
   fetchTasks: async (filters, signal) => {
     try {
-      const tasks = await api.listOps({ signal });
+      const params = {};
+      if (filters?.status)       params.status      = filters.status;
+      if (filters?.division)     params.division   = filters.division;
+      if (filters?.priority)      params.priority   = filters.priority;
+      if (filters?.search)        params.search     = filters.search;
+      if (filters?.planned_date)  params.planned    = filters.planned_date;
+      if (filters?.assigned_to)   params.assigned_to = filters.assigned_to;
+      const tasks = await api.listOps({ params, signal });
       set({ tasks });
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -200,9 +214,10 @@ export const useStore = create((set, get) => ({
     set({ isLoadingActivity: true });
     try {
       const params = {};
-      if (filters?.division)      params.division = filters.division;
-      if (filters?.status)        params.status   = filters.status;
-      if (filters?.activityType)  params.type     = filters.activityType;
+      if (filters?.division)      params.division     = filters.division;
+      if (filters?.status)        params.status       = filters.status;
+      if (filters?.assigned_to)   params.assigned_to  = filters.assigned_to;
+      if (filters?.activityType)  params.type         = filters.activityType;
       params.limit = get().activityLimit;
       params.page  = get().activityPage;
 
@@ -320,8 +335,20 @@ export const useStore = create((set, get) => ({
     const { tasks, filters } = get();
     let result = [...tasks];
 
-    if (filters.status)        result = result.filter(t => t.status === filters.status);
+    if (filters.status) {
+      if (filters.status === 'overdue') {
+        const today = new Date(); today.setHours(0,0,0,0);
+        result = result.filter(t =>
+          t.planned_date &&
+          new Date(t.planned_date) < today &&
+          !['completed','cancelled'].includes(t.status)
+        );
+      } else {
+        result = result.filter(t => t.status === filters.status);
+      }
+    }
     if (filters.division)      result = result.filter(t => t.division === filters.division);
+    if (filters.assigned_to)   result = result.filter(t => t.assigned_to === filters.assigned_to);
     if (filters.priority)      result = result.filter(t => t.priority === filters.priority);
     if (filters.planned_date)  result = result.filter(t => t.planned_date?.slice(0, 10) === filters.planned_date);
     if (filters.search) {

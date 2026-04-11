@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
 import api from '../../api/client';
 
-const VALID_STATUSES   = ['pending', 'in_progress', 'completed', 'cancelled'];
+const VALID_STATUSES   = ['standby', 'in_progress', 'completed', 'cancelled'];
 const VALID_DIVISIONS  = ['lab', 'databyte', 'home'];
 const VALID_CATEGORIES = ['infrastructure', 'software', 'security', 'networking', 'documentation', 'other'];
 const DEFAULT_PRIORITIES = ['critical', 'high', 'medium', 'low'];
@@ -122,7 +122,7 @@ export default function Modal({ task, onClose }) {
             </div>
             <div className="form-group">
               <label htmlFor="f_status">Status</label>
-              <select id="f_status" name="f_status" defaultValue={task?.status || 'pending'}>
+              <select id="f_status" name="f_status" defaultValue={task?.status || 'standby'}>
                 {VALID_STATUSES.map(s => (
                   <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
                 ))}

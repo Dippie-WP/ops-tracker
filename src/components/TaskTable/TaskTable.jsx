@@ -39,7 +39,7 @@ const PRIORITY_COLORS = {
 };
 
 const STATUS_STYLES = {
-  pending:     { bg: '#f8fafc', text: '#64748b' },
+  standby:     { bg: '#f8fafc', text: '#64748b' },
   in_progress: { bg: '#dbeafe', text: '#1d4ed8' },
   review:      { bg: '#ede9fe', text: '#7c3aed' },
   completed:   { bg: '#dcfce7', text: '#16a34a' },
@@ -111,7 +111,7 @@ function PriorityTag({ priority }) {
 }
 
 function StatusPill({ status }) {
-  const s = STATUS_STYLES[status] || STATUS_STYLES.pending;
+  const s = STATUS_STYLES[status] || STATUS_STYLES.standby;
   return (
     <span className="pill" style={{ background: s.bg, color: s.text }}>
       {fmtStatus(status)}

@@ -32,12 +32,14 @@ import Modal            from './components/Modal/Modal';
 import CalendarDropdown from './components/Calendar/CalendarDropdown';
 import SettingsPanel    from './components/Settings/SettingsPanel';
 import TaskDetail       from './pages/TaskDetail';
+import MyTasksPage      from './pages/MyTasksPage';
 import Library          from './pages/Library';
 import Reports          from './pages/Reports';
 import './App.css';
 
 export default function App() {
   const fetchAll   = useStore(s => s.fetchAll);
+  const fetchTasks = useStore(s => s.fetchTasks);
   const bootstrap  = useStore(s => s.bootstrap);
   const selectTask = useStore(s => s.selectTask);
   const clearError = useStore(s => s.clearError);
@@ -56,8 +58,8 @@ export default function App() {
     if (saved) document.documentElement.setAttribute('data-theme', saved);
     const urlFilters = urlToFilters();
     useStore.setState({ filters: urlFilters });
-    bootstrap().then(() => fetchAll());
-  }, [bootstrap, fetchAll]);
+    bootstrap().then(() => fetchTasks(urlFilters));
+  }, [bootstrap]);
 
   // Back/forward browser buttons sync to store
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function App() {
       .task-header{display:flex;align-items:center;gap:8px;margin-bottom:12pt}.task-opid{font-weight:bold;font-size:11pt;color:#1b59b7}
       .task-priority{padding:2pt 6pt;border-radius:3pt;font-size:9pt;font-weight:bold}.priority-critical{background:#fee2e2;color:#dc2626}
       .priority-high{background:#fef3c7;color:#d97706}.priority-medium{background:#dbeafe;color:#2563eb}.priority-low{background:#f1f5f9;color:#64748b}
-      .task-status{padding:2pt 6pt;border-radius:3pt;font-size:9pt;text-transform:capitalize}.status-pending{background:#f8fafc;color:#64748b}
+      .task-status{padding:2pt 6pt;border-radius:3pt;font-size:9pt;text-transform:capitalize}.status-standby{background:#f8fafc;color:#64748b}
       .status-in_progress{background:#dbeafe;color:#1d4ed8}.status-completed{background:#dcfce7;color:#16a34a}.status-cancelled{background:#f1f5f9;color:#94a3b8}
       h2.task-title{font-size:16pt;font-weight:bold;margin-bottom:12pt}table.task-table{width:100%;border-collapse:collapse;margin-bottom:12pt}
       table.task-table th,table.task-table td{text-align:left;padding:4pt 6pt;border-bottom:0.5pt solid #e5e7eb;font-size:10pt}
@@ -167,6 +169,10 @@ export default function App() {
                 {/* Task detail — full page */}
                 <Route path="/tasks/:opId" element={
                   <TaskDetail />
+                } />
+                {/* My Tasks — separate page for logged-in user */}
+                <Route path="/my-tasks" element={
+                  <MyTasksPage />
                 } />
                 {/* Library */}
                 <Route path="/library" element={

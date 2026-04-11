@@ -1,77 +1,74 @@
 /**
- * Sidebar/Sidebar.jsx — Left navigation panel with react-router-dom NavLink.
- * Each section is collapsible. Active item highlighted.
+ * Sidebar/Sidebar.jsx — Left navigation panel.
+ * Uses useNavigate() + useLocation() for active highlighting.
+ * Sections: Workplace | Divisions | System
  */
 
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import useStore from '../../store';
+
+const ITEMS = [
+  { section: 'Workplace', items: [
+    { label: 'All Tasks',    icon: '📋', path: '/',                          filter: {} },
+    { label: 'My Tasks',     icon: '👤', path: '/my-tasks',                     filter: {} },
+    { label: 'In Progress',  icon: '🔵', path: '/tasks/in-progress',          filter: { status: 'in_progress' } },
+    { label: 'Standby',       icon: '🟡', path: '/tasks/standby',             filter: { status: 'standby' } },
+    { label: 'Completed',     icon: '🟢', path: '/tasks/completed',            filter: { status: 'completed' } },
+    { label: 'Overdue',      icon: '🔴', path: '/tasks/overdue',               filter: { status: 'overdue' } },
+  ]},
+  { section: 'Divisions', items: [
+    { label: 'Lab',          icon: '🔬', path: '/tasks/division/lab',         filter: { division: 'lab' } },
+    { label: 'Home',         icon: '🏠', path: '/tasks/division/home',        filter: { division: 'home' } },
+    { label: 'Databyte',     icon: '💾', path: '/tasks/division/databyte',    filter: { division: 'databyte' } },
+  ]},
+  { section: 'System', items: [
+    { label: 'Dashboard',    icon: '📊', path: '/',                           filter: {} },
+    { label: 'Library',      icon: '📁', path: '/library',                    filter: {} },
+    { label: 'Reports',       icon: '📑', path: '/reports',                   filter: {} },
+  ]},
+];
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState({});
+  const location = useLocation();
+  const setFilter = useStore(s => s.setFilter);
+  const fetchTasks = useStore(s => s.fetchTasks);
+  const clearFilters = useStore(s => s.clearFilters);
 
-  const toggle = (key) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
+  const navigate = useNavigate();
 
-  function Nav({ to, children, end }) {
-    return (
-      <NavLink
-        to={to}
-        end={end}
-        className={({ isActive }) => `nav-item${isActive ? ' nav-active' : ''}`}
-      >
-        {children}
-      </NavLink>
-    );
+  function isActive(item) {
+    if (item.path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(item.path);
+  }
+
+  function handleClick(item) {
+    if (item.path === '/') {
+      clearFilters();
+      navigate('/');
+      return;
+    }
+    navigate(item.path);
+    setFilter(item.filter, { push: false });
+    fetchTasks(item.filter);
   }
 
   return (
     <aside className="sidebar">
-      {/* Workplace */}
-      <div className="nav-group">
-        <button className="nav-group-header" onClick={() => toggle('workplace')}>
-          <span>Workplace</span>
-          <span className="chevron">{collapsed.workplace ? '›' : '‹'}</span>
-        </button>
-        {!collapsed.workplace && (
-          <div className="nav-group-items">
-            <Nav to="/tasks" end>All Tasks</Nav>
-            <Nav to="/tasks/my-tasks">My Tasks</Nav>
-            <Nav to="/tasks/in-progress">In Progress</Nav>
-            <Nav to="/tasks/pending">Pending</Nav>
-            <Nav to="/tasks/completed">Completed</Nav>
-            <Nav to="/tasks/overdue">🔴 Overdue</Nav>
-          </div>
-        )}
-      </div>
-
-      {/* Divisions */}
-      <div className="nav-group">
-        <button className="nav-group-header" onClick={() => toggle('divisions')}>
-          <span>Divisions</span>
-          <span className="chevron">{collapsed.divisions ? '›' : '‹'}</span>
-        </button>
-        {!collapsed.divisions && (
-          <div className="nav-group-items">
-            <Nav to="/division/lab">🔬 Lab</Nav>
-            <Nav to="/division/databyte">💾 Databyte</Nav>
-            <Nav to="/division/home">🏠 Home</Nav>
-          </div>
-        )}
-      </div>
-
-      {/* System */}
-      <div className="nav-group">
-        <button className="nav-group-header" onClick={() => toggle('system')}>
-          <span>System</span>
-          <span className="chevron">{collapsed.system ? '›' : '‹'}</span>
-        </button>
-        {!collapsed.system && (
-          <div className="nav-group-items">
-            <Nav to="/" end>📊 Dashboard</Nav>
-            <Nav to="/library">📁 Library</Nav>
-            <Nav to="/reports">📋 Reports</Nav>
-          </div>
-        )}
-      </div>
+      {ITEMS.map(section => (
+        <div key={section.section} className="nav-group">
+          <div className="nav-section-label">{section.section}</div>
+          {section.items.map(item => (
+            <div
+              key={item.label}
+              className={`nav-item${isActive(item) ? ' nav-active' : ''}`}
+              onClick={() => handleClick(item)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-item-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      ))}
     </aside>
   );
 }

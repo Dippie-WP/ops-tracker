@@ -31,7 +31,7 @@ export default function SubHeader({ onNewOp, onExport, selectedCount }) {
     const parts = path.split('/');
     let label = 'All Tasks';
     if (parts[2] === 'in-progress')  label = 'In Progress';
-    if (parts[2] === 'pending')      label = 'Pending';
+    if (parts[2] === 'standby')      label = 'Standby';
     if (parts[2] === 'completed')   label = 'Completed';
     if (parts[2] === 'overdue')     label = 'Overdue';
     if (parts[2] === 'my-tasks')    label = 'My Tasks';

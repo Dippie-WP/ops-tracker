@@ -25,7 +25,7 @@ export default function Dashboard() {
 
   const total      = tasks.length;
   const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-  const pending    = tasks.filter(t => t.status === 'pending').length;
+  const pending    = tasks.filter(t => t.status === 'standby').length;
   const completed  = tasks.filter(t => t.status === 'completed').length;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const overdue = tasks.filter(t =>
@@ -41,7 +41,7 @@ export default function Dashboard() {
   const kpis = [
     { label: 'Total Tasks',   value: total,      color: '#1b59b7', to: '/tasks'              },
     { label: 'In Progress',   value: inProgress, color: '#1d4ed8', to: '/tasks/in-progress'   },
-    { label: 'Pending',        value: pending,    color: '#d97706', to: '/tasks/pending'        },
+    { label: 'Standby',       value: pending,    color: '#d97706', to: '/tasks/standby'        },
     { label: 'Overdue',       value: overdue,    color: '#dc2626', to: '/tasks/overdue'        },
   ];
 

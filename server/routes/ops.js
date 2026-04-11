@@ -4,7 +4,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
 
-const VALID_STATUSES    = ['pending','in_progress','completed','cancelled'];
+const VALID_STATUSES    = ['standby','in_progress','completed','cancelled'];
 const VALID_PRIORITIES = ['critical','high','medium','low'];
 const VALID_CATEGORIES = ['infrastructure','software','security','networking','documentation','other'];
 const VALID_IMPACTS    = ['critical','high','medium','low'];
@@ -94,7 +94,7 @@ router.post('/', (req, res) => {
     const op = db.createOp({
       title:        req.body.title.trim(),
       description:  (req.body.description || '').trim(),
-      status:       req.body.status    || 'pending',
+      status:       req.body.status    || 'standby',
       priority:     req.body.priority  || 'medium',
       planned_date: req.body.planned_date || null,
       category:     req.body.category  || '',

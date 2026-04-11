@@ -9,7 +9,7 @@ const PRIORITY_COLORS = {
   critical: '#dc2626', high: '#d97706', medium: '#2563eb', low: '#64748b',
 };
 const STATUS_STYLES = {
-  pending: { bg: '#f8fafc', text: '#64748b' },
+  standby: { bg: '#f8fafc', text: '#64748b' },
   in_progress: { bg: '#dbeafe', text: '#1d4ed8' },
   review: { bg: '#ede9fe', text: '#7c3aed' },
   completed: { bg: '#dcfce7', text: '#16a34a' },
@@ -52,7 +52,7 @@ export default function Drawer({ onClose, onEdit }) {
   const isOverdue = dueDate && !['completed','cancelled'].includes(task.status) && dueDate < today;
 
   const div = DIV_CHIP[task.division] || DIV_CHIP.lab;
-  const st  = STATUS_STYLES[task.status] || STATUS_STYLES.pending;
+  const st  = STATUS_STYLES[task.status] || STATUS_STYLES.standby;
 
   const handleDelete = async () => {
     if (!confirm(`Delete ${task.op_id}? All attachments will be removed.`)) return;
