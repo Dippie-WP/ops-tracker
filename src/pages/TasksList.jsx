@@ -24,6 +24,7 @@ export default function TasksList({ onNewOp }) {
     if (filterType === 'in-progress') f.status = 'in_progress';
     else if (filterType === 'standby')   f.status = 'standby';
     else if (filterType === 'completed') f.status = 'completed';
+    else if (filterType === 'cancelled') f.status = 'cancelled';
     else if (filterType === 'overdue')   f.status = 'overdue';
     else if (filterType === 'division')  f.division = filterValue;
     setFilter(f, { push: false });

@@ -56,9 +56,23 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
+
+    // Map route path to filter (e.g. /tasks/in-progress → {status:'in_progress'})
+    const path = window.location.pathname;
+    let pathFilter = {};
+    if (path === '/' || path === '')          pathFilter = {};
+    else if (path === '/my-tasks')            pathFilter = { assigned_to: 'zu' };
+    else if (path === '/tasks/in-progress')   pathFilter = { status: 'in_progress' };
+    else if (path === '/tasks/standby')       pathFilter = { status: 'standby' };
+    else if (path === '/tasks/completed')     pathFilter = { status: 'completed' };
+    else if (path === '/tasks/cancelled')     pathFilter = { status: 'cancelled' };
+    else if (path === '/tasks/overdue')       pathFilter = { status: 'overdue' };
+
     const urlFilters = urlToFilters();
-    useStore.setState({ filters: urlFilters });
-    bootstrap().then(() => fetchTasks(urlFilters));
+    // Route path filter takes priority over URL params for status/division/assigned_to
+    const merged = { ...urlFilters, ...pathFilter };
+    useStore.setState({ filters: merged });
+    bootstrap().then(() => fetchTasks(merged));
   }, [bootstrap]);
 
   // Back/forward browser buttons sync to store

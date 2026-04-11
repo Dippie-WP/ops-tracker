@@ -11,10 +11,11 @@ const ITEMS = [
   { section: 'Workplace', items: [
     { label: 'All Tasks',    icon: '📋', path: '/',                          filter: {} },
     { label: 'My Tasks',     icon: '👤', path: '/my-tasks',                     filter: {} },
-    { label: 'In Progress',  icon: '🔵', path: '/tasks/in-progress',          filter: { status: 'in_progress' } },
-    { label: 'Standby',       icon: '🟡', path: '/tasks/standby',             filter: { status: 'standby' } },
-    { label: 'Completed',     icon: '🟢', path: '/tasks/completed',            filter: { status: 'completed' } },
-    { label: 'Overdue',      icon: '🔴', path: '/tasks/overdue',               filter: { status: 'overdue' } },
+    { label: 'In Progress',  icon: '🔵', path: '/tasks/in-progress',   filter: { status: 'in_progress' } },
+    { label: 'Standby',       icon: '🟡', path: '/tasks/standby',        filter: { status: 'standby' } },
+    { label: 'Completed',     icon: '🟢', path: '/tasks/completed',      filter: { status: 'completed' } },
+    { label: 'Cancelled',     icon: '⚪', path: '/tasks/cancelled',      filter: { status: 'cancelled' } },
+    { label: 'Overdue',       icon: '🔴', path: '/tasks/overdue',       filter: { status: 'overdue' } },
   ]},
   { section: 'Divisions', items: [
     { label: 'Lab',      icon: '🔬', path: '/',  filter: { division: 'lab' } },
@@ -36,15 +37,26 @@ export default function Sidebar() {
 
   const navigate = useNavigate();
 
+  const filters = useStore(s => s.filters);
+
   function isActive(item) {
-    if (item.path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(item.path);
+    if (item.path !== '/') return location.pathname.startsWith(item.path);
+    if (location.pathname !== '/') return false;
+    // At /: only one sidebar item should be active at a time
+    const fi = item.filter || {};
+    const keys = Object.keys(fi);
+    if (keys.length === 0) {
+      // 'All Tasks' — active only when NO filters set
+      return Object.keys(filters).length === 0;
+    }
+    // Division/status items — active when filter matches exactly
+    return keys.every(k => filters[k] === fi[k]);
   }
 
   function handleClick(item) {
     if (item.path === '/') {
+      navigate('/');
       if (Object.keys(item.filter).length > 0) {
-        // Division filter: set store filter, stay on home, no URL change
         setFilter(item.filter, { push: false });
         fetchTasks(item.filter);
       } else {
