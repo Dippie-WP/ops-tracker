@@ -146,6 +146,7 @@ module.exports = {
     return db.prepare(sql).all(...params, limit, offset);
   },
   getMe:            (id) => db.prepare('SELECT * FROM users WHERE id = ?').get(id),
+  getUser:          (id) => db.prepare('SELECT * FROM users WHERE id = ?').get(id),
   listChildren:     (parentId) => {
     // Accept either op_id string or numeric id
     const sql = parentId && isNaN(parentId)
