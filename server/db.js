@@ -38,8 +38,8 @@ db.exec(`
     op_id     TEXT    NOT NULL UNIQUE,
     title     TEXT    NOT NULL,
     description TEXT  DEFAULT '',
-    status    TEXT    NOT NULL DEFAULT 'standby'
-                      CHECK(status IN ('standby','in_progress','completed','cancelled')),
+    status    TEXT    NOT NULL DEFAULT 'pending'
+                      CHECK(status IN ('pending','in_progress','completed','cancelled')),
     priority  TEXT    NOT NULL DEFAULT 'medium'
                       CHECK(priority IN ('critical','high','medium','low')),
     planned_date TEXT DEFAULT NULL,

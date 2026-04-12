@@ -40,11 +40,14 @@ const opsRouter         = require('./routes/ops');
 const attachmentsRouter = require('./routes/attachments');
 const activityRouter   = require('./routes/activity');
 const usersRouter      = require('./routes/users');
+const uploadsRouter     = require('./routes/uploads');
 
 app.use('/api/ops',        opsRouter);
 app.use('/api/ops/:opId/attachments', attachmentsRouter);
+app.use('/api/attachments', attachmentsRouter);  // +1F41E FIX: TOP-LEVEL MOUNT
 app.use('/api/activity',   activityRouter);
 app.use('/api/users',      usersRouter);
+app.use('/api/uploads',    uploadsRouter);
 app.use('/api/auth',       usersRouter);  // /api/auth/me handled in usersRouter
 
 // Fallback → SPA
