@@ -155,9 +155,8 @@ module.exports = {
   },
   getStats:         () => {
     const all = db.prepare('SELECT status, COUNT(*) as count FROM ops GROUP BY status').all();
-    const byStatus = {};
-    let total = 0;
-    for (const r of all) { byStatus[r.status] = r.count; total += r.count; }
+    const byStatus = all; // [{status, count}, ...]
+    const total = all.reduce((sum, r) => sum + r.count, 0);
     return { total, byStatus };
   },
   db,

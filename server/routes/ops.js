@@ -155,11 +155,11 @@ router.patch('/:opId', (req, res) => {
     // Block closing parent if it has open children
     if (['completed','cancelled'].includes(newStatus) && existing.parent_id === null) {
       const children = db.listChildren(req.params.opId);
-      const openChildren = children.filter(c => ['in_progress','standby','overdue'].includes(c.status));
+      const openChildren = children.filter(c => ['in_progress','standby','overdue','pending'].includes(c.status));
       if (openChildren.length > 0) {
         return res.status(400).json({
           ok: false,
-          error: `Cannot close: ${openChildren.length} child(ren) still open (in_progress/standby/overdue)`
+          error: `Cannot close: ${openChildren.length} child(ren) still open (in_progress/standby/overdue/pending)`
         });
       }
     }
