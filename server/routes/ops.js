@@ -131,7 +131,8 @@ router.post('/', (req, res) => {
         : null,
       req.body.category || '',
       req.body.impact || 'medium',
-      req.body.division || 'lab'
+      req.body.division || 'lab',
+      req.body.created_by || 'default'
     );
 
     const op = db.getOpByNumber(op_id);

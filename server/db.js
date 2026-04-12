@@ -19,7 +19,7 @@ function getCols(table) {
 const opsCols = getCols('ops');
 
 // ── 1. Ensure all new columns exist (idempotent ALTER TABLE ADD COLUMN) ──────
-const newCols = ['start_date','end_date','cost_zar','parent_id'];
+const newCols = ['start_date','end_date','cost_zar','parent_id','created_by'];
 for (const col of newCols) {
   if (!opsCols.includes(col)) {
     try {
@@ -34,6 +34,9 @@ if (!opsCols.includes('division')) {
     db.exec("ALTER TABLE ops ADD COLUMN division TEXT NOT NULL DEFAULT 'lab'");
   } catch(e) {}
 }
+
+  // Backfill created_by for existing rows (user 'default' for all existing)
+  db.exec("UPDATE ops SET created_by = 'default' WHERE created_by IS NULL");
 
 db.exec('CREATE INDEX IF NOT EXISTS idx_ops_status ON ops(status)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_ops_division ON ops(division)');
@@ -122,8 +125,8 @@ module.exports = {
   getOp:            (id) => db.prepare('SELECT * FROM ops WHERE id = ?').get(id),
   getOpByNumber:    (opId) => db.prepare('SELECT * FROM ops WHERE op_id = ?').get(opId),
   nextOpId:         () => db.prepare("SELECT MAX(CAST(SUBSTR(op_id, 10) AS INTEGER)) + 1 AS next FROM ops").get(),
-  createOp:         (op_id, title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division) =>
-                    db.prepare('INSERT INTO ops (op_id,title,description,status,priority,start_date,end_date,cost_zar,parent_id,category,impact,division) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(op_id, title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division),
+  createOp:         (op_id, title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division, created_by) =>
+                    db.prepare('INSERT INTO ops (op_id,title,description,status,priority,start_date,end_date,cost_zar,parent_id,category,impact,division,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(op_id, title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division, created_by || 'default'),
   updateOp:         (title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division, id) =>
                     db.prepare("UPDATE ops SET title=?,description=?,status=?,priority=?,start_date=?,end_date=?,cost_zar=?,parent_id=?,category=?,impact=?,division=?,updated_at=datetime('now') WHERE id=?").run(title, description, status, priority, start_date, end_date, cost_zar, parent_id, category, impact, division, id),
   deleteOp:         (id) => db.prepare('DELETE FROM ops WHERE id = ?').run(id),
