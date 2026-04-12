@@ -4,7 +4,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
 
-const VALID_STATUSES    = ['pending','in_progress','completed','cancelled'];
+const VALID_STATUSES    = ['pending','in_progress','completed','cancelled','overdue','standby'];
 const VALID_PRIORITIES = ['critical','high','medium','low'];
 const VALID_CATEGORIES = ['infrastructure','software','security','networking','documentation','other'];
 const VALID_IMPACTS    = ['critical','high','medium','low'];
@@ -25,9 +25,18 @@ function validate(body, requireAll = false) {
     errors.push(`impact must be one of: ${VALID_IMPACTS.join(', ')}`);
   if (body.division && !VALID_DIVISIONS.includes(body.division))
     errors.push(`division must be one of: ${VALID_DIVISIONS.join(', ')}`);
-  if (body.planned_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.planned_date))
-    errors.push('planned_date must be YYYY-MM-DD');
+  if (body.start_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.start_date))
+    errors.push('start_date must be YYYY-MM-DD');
+  if (body.end_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.end_date))
+    errors.push('end_date must be YYYY-MM-DD');
   return errors;
+}
+
+// ── Activity helper ────────────────────────────────────────────────────────────
+function logActivity(taskId, opNumber, type, display, comment) {
+  try {
+    db.createActivity({ taskId, opNumber, userId: 'default', type, display, comment });
+  } catch(e) { console.error('Activity log error:', e.message); }
 }
 
 // GET /api/ops
@@ -76,10 +85,21 @@ router.get('/next-id', (req, res) => {
 // GET /api/ops/:opId
 router.get('/:opId', (req, res) => {
   try {
-    const op = db.getOp(req.params.opId);
+    const op = db.getOpByNumber(req.params.opId);
     if (!op) return res.status(404).json({ ok: false, error: 'Op not found' });
     const attachments = db.listAttachments(req.params.opId);
-    res.json({ ok: true, data: { ...op, attachments } });
+    const children = db.listChildren(req.params.opId);
+    res.json({ ok: true, data: { ...op, attachments, children } });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/ops/:opId/children
+router.get('/:opId/children', (req, res) => {
+  try {
+    const children = db.listChildren(req.params.opId);
+    res.json({ ok: true, data: children });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -91,16 +111,31 @@ router.post('/', (req, res) => {
     const errors = validate(req.body, true);
     if (errors.length) return res.status(400).json({ ok: false, errors });
 
-    const op = db.createOp({
-      title:        req.body.title.trim(),
-      description:  (req.body.description || '').trim(),
-      status:       req.body.status    || 'pending',
-      priority:     req.body.priority  || 'medium',
-      planned_date: req.body.planned_date || null,
-      category:     req.body.category  || '',
-      impact:       req.body.impact    || 'medium',
-      division:     req.body.division  || 'lab',
-    });
+    const next = db.nextOpId();
+    const seq  = String(next ? next.next : 1).padStart(4, '0');
+    const op_id = `2026-04-${seq}`;
+
+    db.createOp(
+      op_id,
+      req.body.title.trim(),
+      (req.body.description || '').trim(),
+      req.body.status || 'pending',
+      req.body.priority || 'medium',
+      req.body.start_date || null,
+      req.body.end_date || null,
+      req.body.cost_zar != null ? parseFloat(req.body.cost_zar) : null,
+      req.body.parent_id
+        ? (isNaN(req.body.parent_id)
+            ? (db.getOpByNumber(req.body.parent_id) || {id: null}).id
+            : parseInt(req.body.parent_id))
+        : null,
+      req.body.category || '',
+      req.body.impact || 'medium',
+      req.body.division || 'lab'
+    );
+
+    const op = db.getOpByNumber(op_id);
+    logActivity(op.id, op.op_id, 'CREATED', `📄 Created #${op.op_id}`);
     res.status(201).json({ ok: true, data: op });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -110,25 +145,56 @@ router.post('/', (req, res) => {
 // PATCH /api/ops/:opId
 router.patch('/:opId', (req, res) => {
   try {
-    const existing = db.getOp(req.params.opId);
+    const existing = db.getOpByNumber(req.params.opId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Op not found' });
-
     const errors = validate(req.body, false);
     if (errors.length) return res.status(400).json({ ok: false, errors });
 
-    // Pass previous op to updateOp so it can detect changes for activity log
-    const updated = db.updateOp(req.params.opId, {
-      title:        (req.body.title        ?? existing.title).trim(),
-      description:  (req.body.description  ?? (existing.description || '')).trim(),
-      status:       req.body.status        ?? existing.status,
-      priority:     req.body.priority      ?? existing.priority,
-      planned_date: req.body.planned_date  !== undefined
-                      ? (req.body.planned_date || null)
-                      : existing.planned_date,
-      category:     req.body.category      ?? existing.category,
-      impact:       req.body.impact       ?? existing.impact,
-      division:     req.body.division     ?? existing.division,
-    }, existing);  // <-- pass previous state for activity detection
+    const newStatus = req.body.status || existing.status;
+
+    // Block closing parent if it has open children
+    if (['completed','cancelled'].includes(newStatus) && existing.parent_id === null) {
+      const children = db.listChildren(req.params.opId);
+      const openChildren = children.filter(c => ['in_progress','standby','overdue'].includes(c.status));
+      if (openChildren.length > 0) {
+        return res.status(400).json({
+          ok: false,
+          error: `Cannot close: ${openChildren.length} child(ren) still open (in_progress/standby/overdue)`
+        });
+      }
+    }
+
+    db.updateOp(
+      (req.body.title        ?? existing.title).trim(),
+      (req.body.description  ?? (existing.description || '')).trim(),
+      newStatus,
+      req.body.priority     ?? existing.priority,
+      req.body.start_date   !== undefined ? (req.body.start_date || null) : existing.start_date,
+      req.body.end_date     !== undefined ? (req.body.end_date || null)   : existing.end_date,
+      req.body.cost_zar     !== undefined ? (req.body.cost_zar != null ? parseFloat(req.body.cost_zar) : null) : existing.cost_zar,
+      req.body.parent_id    !== undefined
+        ? (req.body.parent_id
+            ? (isNaN(req.body.parent_id)
+                ? (db.getOpByNumber(req.body.parent_id) || {id: null}).id
+                : parseInt(req.body.parent_id))
+            : null)
+        : existing.parent_id,
+      req.body.category     ?? existing.category,
+      req.body.impact       ?? existing.impact,
+      req.body.division     ?? existing.division,
+      existing.id
+    );
+
+    const updated = db.getOp(existing.id);
+
+    // Field-change activity
+    const changes = [];
+    if (req.body.status    && req.body.status    !== existing.status)    changes.push(`status: ${existing.status}→${req.body.status}`);
+    if (req.body.priority  && req.body.priority  !== existing.priority)  changes.push(`priority: ${existing.priority}→${req.body.priority}`);
+    if (req.body.start_date && req.body.start_date !== existing.start_date) changes.push(`start: ${existing.start_date || 'none'}→${req.body.start_date}`);
+    if (req.body.end_date  && req.body.end_date  !== existing.end_date) changes.push(`end: ${existing.end_date || 'none'}→${req.body.end_date}`);
+    if (req.body.cost_zar  !== undefined && String(req.body.cost_zar) !== String(existing.cost_zar)) changes.push(`cost: R${existing.cost_zar || 0}→R${req.body.cost_zar}`);
+    if (changes.length) logActivity(updated.id, updated.op_id, 'FIELDS_CHANGED', `✏️ ${changes.join(', ')}`);
 
     res.json({ ok: true, data: updated });
   } catch (err) {
@@ -139,8 +205,9 @@ router.patch('/:opId', (req, res) => {
 // DELETE /api/ops/:opId
 router.delete('/:opId', (req, res) => {
   try {
-    const deleted = db.deleteOp(req.params.opId);
-    if (!deleted) return res.status(404).json({ ok: false, error: 'Op not found' });
+    const existing = db.getOpByNumber(req.params.opId);
+    if (!existing) return res.status(404).json({ ok: false, error: 'Op not found' });
+    db.deleteOp(existing.id);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
